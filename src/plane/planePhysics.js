@@ -1,54 +1,46 @@
 export class PlanePhysics {
 	constructor() {
-		this.speed = 0;
-		this.maxSpeed = 300; // knots-ish
-		this.minSpeed = 50; // Stall speed
-		this.throttle = 0;
-		this.enginePower = 0.5;
-		this.drag = 0.01;
-		this.liftFactor = 0.005;
+		this.speed = 150; // Initial speed
+		this.maxSpeed = 800; // Ace Combat style speed
+		this.minSpeed = 100;
+		this.throttle = 0.5;
+		this.enginePower = 1.2;
+		this.drag = 0.005;
+		this.liftFactor = 0.002;
 		this.gravity = 9.8;
 
 		this.pitch = 0;
 		this.roll = 0;
 		this.heading = 0;
 
-		this.pitchRate = 40.0;
-		this.rollRate = 60.0;
-		this.yawRate = 20.0;
+		this.pitchRate = 60.0; // Faster
+		this.rollRate = 120.0; // Much faster
+		this.yawRate = 40.0; // Faster
 	}
 
 	update(input, dt) {
-		// Throttle / Speed
+		// Throttle / Speed logic - Arcade style
 		this.throttle = input.throttle;
-		const acceleration = (this.throttle * this.enginePower * 10) - (this.drag * this.speed * 0.1);
-		this.speed += acceleration * dt * 50;
-
-		// Limits
-		if (this.speed < 0) this.speed = 0;
-		if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
+		// Speed tends towards a baseline depending on throttle
+		const targetSpeed = this.minSpeed + (this.throttle * (this.maxSpeed - this.minSpeed));
+		this.speed += (targetSpeed - this.speed) * dt * 2;
 
 		// Pitch, Roll, Yaw
-		// Effectiveness of controls depends on speed
-		const controlEffectiveness = Math.min(1, this.speed / 50);
+		// In Ace Combat, control effectiveness is high at most speeds
+		const controlEffectiveness = this.speed > this.minSpeed ? 1 : (this.speed / this.minSpeed);
+		
 		this.pitch += input.pitch * this.pitchRate * dt * controlEffectiveness;
 		this.roll += input.roll * this.rollRate * dt * controlEffectiveness;
-		this.heading += input.yaw * this.yawRate * dt * controlEffectiveness;
-
-		// Lift (simplified)
-		const lift = (this.speed * this.speed * this.liftFactor);
-
-		// Stall logic
-		if (this.speed < this.minSpeed && this.pitch > 10) {
-			this.pitch -= 20 * dt; // Nose drops in stall
-		}
+		
+		// Banking turns the aircraft (Roll to Yaw/Heading coupling)
+		const bankingTurn = Math.sin(this.roll * Math.PI / 180) * 20; 
+		this.heading += (input.yaw * this.yawRate + bankingTurn) * dt * controlEffectiveness;
 
 		return {
 			speed: this.speed,
 			pitch: this.pitch,
 			roll: this.roll,
 			heading: this.heading,
-			lift: lift
 		};
 	}
 }

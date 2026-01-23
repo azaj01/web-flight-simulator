@@ -3,9 +3,7 @@
 ## 1. Tujuan Proyek
 
 Membangun game flight simulator berbasis web browser dengan fitur: -
-Dunia 3D real-world (terrain) - Kontrol pesawat menggunakan gerakan
-tangan via webcam - Full JavaScript (tanpa backend wajib) - Fokus ke
-real-time performance & UX yang playable
+Dunia 3D real-world (terrain) - Kontrol pesawat menggunakan keyboard/mouse - Gaya permainan arcade (Ace Combat 7) - Full JavaScript (tanpa backend wajib)
 
 ------------------------------------------------------------------------
 
@@ -20,15 +18,15 @@ real-time performance & UX yang playable
         -   Alternatif: Mapbox Terrain / OpenTopography
 -   **Three.js**
     -   Model pesawat (GLTF)
-    -   HUD & overlay UI
+    -   HUD & overlay UI (Ace Combat style)
     -   Animasi & lighting
 
-### 2.2 Kontrol Tangan (Webcam)
+### 2.2 Kontrol
 
--   **MediaPipe Hands (Web)**
-    -   Hand landmark detection (21 titik)
-    -   WebAssembly backend
-    -   FPS target: 15--20 FPS
+-   **Keyboard Controls**
+    -   W/S/Shift/Ctrl untuk Throttle
+    -   Arrow Keys untuk Pitch & Roll
+    -   A/D untuk Yaw
 
 ### 2.3 Physics
 

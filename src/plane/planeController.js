@@ -13,32 +13,30 @@ export class PlaneController {
 	}
 a
 	update() {
-		if (this.keys['w'] || this.keys['ArrowUp']) {
-			this.input.throttle = Math.min(1, this.input.throttle + 0.01);
+		// Throttle logic
+		const accelRate = 0.5;
+		if (this.keys['w'] || this.keys['Shift']) {
+			this.input.throttle = Math.min(1, this.input.throttle + accelRate * 0.016);
+		} else if (this.keys['s'] || this.keys['Control']) {
+			this.input.throttle = Math.max(0, this.input.throttle - accelRate * 0.016);
 		}
-		if (this.keys['s'] || this.keys['ArrowDown']) {
-			this.input.throttle = Math.max(0, this.input.throttle - 0.01);
-		}
 
-		this.input.pitch = 0;
-		if (this.keys['ArrowUp']) this.input.pitch = 1;
-		if (this.keys['ArrowDown']) this.input.pitch = -1;
+		// Pitch logic (Inverted for flight)
+		const pitchTarget = (this.keys['ArrowUp'] ? -1 : (this.keys['ArrowDown'] ? 1 : 0));
+		this.input.pitch = this.lerp(this.input.pitch, pitchTarget, 0.1);
 
-		this.input.roll = 0;
-		if (this.keys['ArrowLeft']) this.input.roll = -1;
-		if (this.keys['ArrowRight']) this.input.roll = 1;
+		// Roll logic
+		const rollTarget = (this.keys['ArrowLeft'] ? -1 : (this.keys['ArrowRight'] ? 1 : 0));
+		this.input.roll = this.lerp(this.input.roll, rollTarget, 0.1);
 
-		this.input.yaw = 0;
-		if (this.keys['a']) this.input.yaw = -1;
-		if (this.keys['d']) this.input.yaw = 1;
+		// Yaw logic
+		const yawTarget = (this.keys['a'] ? -1 : (this.keys['d'] ? 1 : 0));
+		this.input.yaw = this.lerp(this.input.yaw, yawTarget, 0.1);
 
 		return this.input;
 	}
 
-	setHandInput(roll, pitch, yaw, throttle) {
-		this.input.roll = roll;
-		this.input.pitch = pitch;
-		this.input.yaw = yaw;
-		this.input.throttle = throttle;
+	lerp(start, end, amt) {
+		return (1 - amt) * start + amt * end;
 	}
 }

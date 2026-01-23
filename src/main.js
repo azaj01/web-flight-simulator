@@ -3,9 +3,6 @@ import { initCesium, setCameraToPlane } from './world/cesiumWorld';
 import { PlanePhysics } from './plane/planePhysics';
 import { PlaneController } from './plane/planeController';
 import { movePosition } from './utils/math';
-import { HandTracker } from './input/handTracker';
-import { GestureMapper } from './input/gestureMapper';
-import { SmoothingFilter } from './input/smoothing';
 import { HUD } from './ui/hud';
 
 // Flight State
@@ -24,16 +21,7 @@ let scene, camera, renderer;
 let planeModel;
 let physics = new PlanePhysics();
 let controller = new PlaneController();
-let gestureMapper = new GestureMapper();
 let hud = new HUD();
-let handTracker;
-
-// Smoothing filters
-let filters = {
-	roll: new SmoothingFilter(0.15),
-	pitch: new SmoothingFilter(0.15),
-	throttle: new SmoothingFilter(0.1),
-};
 
 function initThree() {
 	scene = new THREE.Scene();
@@ -57,32 +45,6 @@ function initThree() {
 
 	planeModel.position.z = -5;
 	planeModel.position.y = -1;
-}
-
-function initHandTracking() {
-	const video = document.getElementById('webcam');
-	const canvas = document.getElementById('debugCanvas');
-
-	handTracker = new HandTracker(video, canvas, (results) => {
-		if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-			const handInput = gestureMapper.mapHandToFlight(results.multiHandLandmarks[0]);
-			if (handInput) {
-				controller.setHandInput(
-					filters.roll.filter(handInput.roll),
-					filters.pitch.filter(handInput.pitch),
-					handInput.yaw,
-					filters.throttle.filter(handInput.throttle)
-				);
-				document.getElementById('hud-status').innerText = "TRACKING";
-				document.getElementById('hud-status').style.color = "#0f0";
-			}
-		} else {
-			document.getElementById('hud-status').innerText = "LOST";
-			document.getElementById('hud-status').style.color = "#f00";
-		}
-	});
-
-	handTracker.start();
 }
 
 function update(dt) {
@@ -118,7 +80,6 @@ function animate() {
 
 initCesium();
 initThree();
-initHandTracking();
 animate();
 
 window.addEventListener('resize', () => {
