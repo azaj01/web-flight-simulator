@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export class PlanePhysics {
 	constructor() {
 		this.speed = 150; // Initial speed
-		this.maxSpeed = 800; // Ace Combat style speed
+		this.maxSpeed = 1000; // Ace Combat style speed
 		this.minSpeed = 100;
 		this.throttle = 0.5;
 		this.enginePower = 1.2;

@@ -11,7 +11,7 @@ export class PlaneController {
 			yaw: 0
 		};
 	}
-a
+	
 	update() {
 		// Throttle logic
 		const accelRate = 0.5;

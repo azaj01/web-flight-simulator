@@ -39,7 +39,7 @@ let controller = new PlaneController();
 let hud = new HUD();
 
 // Visual Inertia Constants
-const BASE_PLANE_POS = new THREE.Vector3(0, -2, -8);
+const BASE_PLANE_POS = new THREE.Vector3(0, -0.8, -3.2);
 let visualOffset = new THREE.Vector3().copy(BASE_PLANE_POS);
 let visualRotation = new THREE.Euler(0, 0, 0);
 let lastSpeed = 0;
@@ -91,7 +91,7 @@ function initThree() {
 		
 		// Position relative to camera (Chase View)
 		planeModel.position.copy(BASE_PLANE_POS);
-		planeModel.scale.set(0.5, 0.5, 0.5); 
+		planeModel.scale.set(0.2, 0.2, 0.2); 
 		
 		// Setup Animation - Using static pose 'F15 ldg'
 		mixer = new THREE.AnimationMixer(mesh);
@@ -139,12 +139,12 @@ function update(dt) {
 		// 1. Longitudinal (Speed/Accel)
 		const accel = (state.speed - prevSpeed) / dt;
 		// Forward offset (away from camera) on acceleration, backward on braking
-		const targetZ = BASE_PLANE_POS.z - (accel * 0.005); 
+		const targetZ = BASE_PLANE_POS.z - (accel * 0.001); 
 		
 		// 2. Lateral/Vertical (Pitch/Roll/Yaw)
 		// Model shifts slightly in frame when maneuvering
-		const targetX = BASE_PLANE_POS.x - (input.roll * 1.5) - (input.yaw * 0.3);
-		const targetY = BASE_PLANE_POS.y - (input.pitch * 0.25);
+		const targetX = BASE_PLANE_POS.x - (input.roll * 0.6) - (input.yaw * 0.12);
+		const targetY = BASE_PLANE_POS.y - (input.pitch * 0.1);
 		
 		// 3. Rotation Lag
 		const targetRotZ = THREE.MathUtils.degToRad(-input.roll * 15);
