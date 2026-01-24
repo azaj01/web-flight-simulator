@@ -14,6 +14,8 @@ export class HUD {
 		this.smoothedPitch = 0;
 		this.smoothedRoll = 0;
 		this.smoothedHeading = 0;
+		this.smoothedThrottle = 0;
+		this.smoothedYaw = 0;
 		
 		this.createHorizon();
 		this.resizeMinimap();
@@ -38,10 +40,11 @@ export class HUD {
                 position: absolute;
                 top: 50%;
                 left: 50%;
-                width: 400px;
-                height: 400px;
+                width: 600px;
+                height: 600px;
                 transform: translate(-50%, -50%);
                 pointer-events: none;
+                overflow: hidden;
             `;
 
 			const crosshair = document.createElement('div');
@@ -100,7 +103,7 @@ export class HUD {
 
 	update(state) {
 		// 1. Inertia Calculations (Lagged values)
-		const lerpFactor = 0.25; // Lower = more lag/inertia
+		const lerpFactor = 0.5; // Lower = more lag/inertia
 		
 		// Handle angle wrapping for smoothing
 		const lerpAngle = (current, target, factor) => {
@@ -110,22 +113,51 @@ export class HUD {
 			return current + diff * factor;
 		};
 
-		this.smoothedPitch = this.smoothedPitch + (state.pitch - this.smoothedPitch) * lerpFactor;
+		const getAngleDiff = (target, current) => {
+			let diff = target - current;
+			while (diff < -180) diff += 360;
+			while (diff > 180) diff -= 360;
+			return diff;
+		};
+
+		const normalizeAngle = (a) => {
+			while (a <= -180) a += 360;
+			while (a > 180) a -= 360;
+			return a;
+		};
+
+		this.smoothedPitch = lerpAngle(this.smoothedPitch, state.pitch, lerpFactor);
 		this.smoothedRoll = lerpAngle(this.smoothedRoll, state.roll, lerpFactor);
 		this.smoothedHeading = lerpAngle(this.smoothedHeading, state.heading || 0, lerpFactor);
+		this.smoothedThrottle = this.smoothedThrottle + ((state.throttle || 0) - this.smoothedThrottle) * (lerpFactor * 0.4); // More inertia for throttle
+		this.smoothedYaw = this.smoothedYaw + ((state.yaw || 0) - this.smoothedYaw) * lerpFactor;
+
+		// Keep smoothed values normalized to prevent drift
+		this.smoothedPitch = normalizeAngle(this.smoothedPitch);
+		this.smoothedRoll = normalizeAngle(this.smoothedRoll);
+		this.smoothedHeading = normalizeAngle(this.smoothedHeading);
 
 		// 2. Semi-3D Effect (Tilt and Offset based on lag)
-		const pitchDiff = state.pitch - this.smoothedPitch;
-		const rollDiff = state.roll - this.smoothedRoll;
+		// Use shortest distance diff to avoid jumps at 180/-180
+		const pitchDiff = getAngleDiff(state.pitch, this.smoothedPitch);
+		const rollDiff = getAngleDiff(state.roll, this.smoothedRoll);
+		const yawDiff = (state.yaw || 0) - this.smoothedYaw;
+		const throttleDiff = (state.throttle || 0) - this.smoothedThrottle;
 		
 		// Apply perspective tilt to the whole HUD
 		if (this.uiContainer) {
-			const tiltX = pitchDiff * 0.8;    // Tilt up/down
-			const tiltY = -rollDiff * 0.3;   // Tilt left/right
-			const shiftX = -rollDiff * 1.5;  // Slight slide
-			const shiftY = pitchDiff * 3.0;   // Slight slide
+			const maxTilt = 15; // Limit tilt to prevent extreme distortion
+			const tiltX = Math.max(-maxTilt, Math.min(maxTilt, pitchDiff * 0.8));    // Tilt up/down
+			const tiltY = Math.max(-maxTilt, Math.min(maxTilt, -rollDiff * 0.3 + yawDiff * 5.0));   // Tilt left/right (Roll + Yaw)
 			
-			this.uiContainer.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translate(${shiftX}px, ${shiftY}px)`;
+			const maxShift = 50;
+			const shiftX = Math.max(-maxShift, Math.min(maxShift, -rollDiff * 1.5 - yawDiff * 20.0));  // Slight slide (Roll + Yaw)
+			const shiftY = Math.max(-maxShift, Math.min(maxShift, pitchDiff * 3.0 + throttleDiff * 15.0));   // Slide with pitch + throttle
+			
+			// Acceleration "Zoom" effect
+			const scale = 1 + (throttleDiff * 0.25); // More pronounced zoom on acceleration
+			
+			this.uiContainer.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translate(${shiftX}px, ${shiftY}px) scale(${scale})`;
 		}
 
 		// 3. Update Speed & Alt
@@ -148,10 +180,8 @@ export class HUD {
 		if (pitchLines && horizon) {
 			// The ladder rotates and shifts based on physics reality, 
 			// but we use smoothed values if we want the LADDER itself to lag.
-			// Or we use state.* if we want the elements to stay fixed and ONLY the container to lag.
-			// Ace Combat uses slightly lagged elements.
 			horizon.style.transform = `translate(-50%, -50%) rotate(${-this.smoothedRoll}deg)`;
-			pitchLines.style.transform = `translateY(${this.smoothedPitch * 5}px)`;
+			pitchLines.style.transform = `translateY(${this.smoothedPitch * 6}px)`;
 		}
 
 		this.drawMinimap(state);
@@ -173,7 +203,7 @@ export class HUD {
 		ctx.save();
 		ctx.translate(centerX, centerY);
 		
-		const heading = state.heading || 0;
+		const heading = this.smoothedHeading;
 		ctx.rotate(-heading * Math.PI / 180); // Rotate world opposite to heading
 
 		// Draw background grid
@@ -215,10 +245,8 @@ export class HUD {
 			
 			ctx.save();
 			ctx.translate(dx, dy);
-			// Rotate text back so it's always upright? 
-			// In Ace Combat, the letters usually stay upright or rotate with the map.
-			// Let's make them rotate WITH the map for now as requested ("mata angin menyesuaikan").
-			ctx.rotate(state.heading * Math.PI / 180); 
+			// Rotate text back so it's always upright
+			ctx.rotate(this.smoothedHeading * Math.PI / 180); 
 			ctx.fillText(dir.label, 0, 5);
 			ctx.restore();
 		});

@@ -118,6 +118,8 @@ function update(dt) {
 	state.pitch = physicsResult.pitch;
 	state.roll = physicsResult.roll;
 	state.heading = physicsResult.heading;
+	state.throttle = input.throttle;
+	state.yaw = input.yaw;
 
 	const newPos = movePosition(state.lon, state.lat, state.alt, state.heading, state.pitch, state.speed * dt);
 	state.lon = newPos.lon;
@@ -142,7 +144,7 @@ function update(dt) {
 		// 2. Lateral/Vertical (Pitch/Roll)
 		// Model shifts slightly in frame when maneuvering
 		const targetX = BASE_PLANE_POS.x - (input.roll * 1.5);
-		const targetY = BASE_PLANE_POS.y - (input.pitch * 1.0);
+		const targetY = BASE_PLANE_POS.y - (input.pitch * 0.25);
 		
 		// 3. Rotation Lag
 		const targetRotZ = THREE.MathUtils.degToRad(-input.roll * 15);
@@ -324,8 +326,10 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 	state.roll = 0;
 	state.heading = 0;
 	
-	// Reset physics
+	// Reset physics and set initial orientation
 	physics = new PlanePhysics();
+	physics.reset(state.lon, state.lat, state.alt, state.heading, state.pitch, state.roll);
+	
 	hud.resetTime();
 	hud.resizeMinimap(); 
 	
