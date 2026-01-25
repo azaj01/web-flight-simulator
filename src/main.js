@@ -266,7 +266,7 @@ function animate() {
 // UI Handlers
 document.getElementById('startBtn').onclick = () => {
 	mainMenu.classList.add('hidden');
-	enterSpawnPicking();
+	enterSpawnPicking(false); // No vignette from main menu
 };
 
 document.getElementById('optionsBtn').onclick = () => {
@@ -281,7 +281,7 @@ document.getElementById('resumeBtn').onclick = () => {
 
 document.getElementById('restartBtn').onclick = () => {
 	pauseMenu.classList.add('hidden');
-	enterSpawnPicking();
+	enterSpawnPicking(true);
 };
 
 document.getElementById('quitBtn').onclick = () => {
@@ -290,27 +290,37 @@ document.getElementById('quitBtn').onclick = () => {
 
 document.getElementById('respawnBtn').onclick = () => {
 	crashMenu.classList.add('hidden');
-	enterSpawnPicking();
+	enterSpawnPicking(true);
 };
 
-function enterSpawnPicking() {
-	spawnInstruction.classList.remove('hidden');
-	threeContainer.classList.add('hidden');
-	uiContainer.classList.add('hidden');
-	currentState = States.PICK_SPAWN;
-	confirmSpawnBtn.classList.add('hidden');
-	
-	if (spawnMarker) {
-		const viewer = getViewer();
-		viewer.entities.remove(spawnMarker);
-		spawnMarker = null;
-	}
+function enterSpawnPicking(useVignette = true) {
+	const vignette = document.getElementById('transition-vignette');
+	if (useVignette && vignette) vignette.style.opacity = '1';
 
-	const viewer = getViewer();
-	viewer.camera.flyTo({
-		destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, 15000),
-		duration: 1.5
-	});
+	const delay = useVignette ? 500 : 0;
+
+	setTimeout(() => {
+		spawnInstruction.classList.remove('hidden');
+		threeContainer.classList.add('hidden');
+		uiContainer.classList.add('hidden');
+		currentState = States.PICK_SPAWN;
+		confirmSpawnBtn.classList.add('hidden');
+		
+		if (spawnMarker) {
+			const viewer = getViewer();
+			viewer.entities.remove(spawnMarker);
+			spawnMarker = null;
+		}
+
+		const viewer = getViewer();
+		viewer.camera.flyTo({
+			destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, 15000),
+			duration: 1.5,
+			complete: () => {
+				if (vignette) vignette.style.opacity = '0';
+			}
+		});
+	}, delay);
 }
 
 // Spawn logic
@@ -367,54 +377,60 @@ function setupSpawnPicker() {
 }
 
 document.getElementById('confirmSpawnBtn').onclick = () => {
-	const viewer = getViewer();
-	if (spawnMarker) {
-		viewer.entities.remove(spawnMarker);
-		spawnMarker = null;
-	}
+	const vignette = document.getElementById('transition-vignette');
+	if (vignette) vignette.style.opacity = '1';
 
-	state.speed = 150;
-	state.pitch = 0;
-	state.roll = 0;
-	state.heading = 0;
-	
-	// Reset physics and set initial orientation
-	physics = new PlanePhysics();
-	physics.reset(state.lon, state.lat, state.alt, state.heading, state.pitch, state.roll);
-	
-	hud.resetTime();
-	hud.resizeMinimap(); 
-	
-	spawnInstruction.classList.add('hidden');
-	confirmSpawnBtn.classList.add('hidden');
-	
-	currentState = States.TRANSITIONING;
-
-	// Beautiful fly-in transition to cockpit
-	viewer.camera.flyTo({
-		destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, state.alt),
-		orientation: {
-			heading: Cesium.Math.toRadians(state.heading),
-			pitch: Cesium.Math.toRadians(state.pitch),
-			roll: Cesium.Math.toRadians(state.roll)
-		},
-		duration: 2.0,
-		easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
-		complete: () => {
-			flightStartTime = Date.now();
-			uiContainer.classList.remove('hidden');
-			threeContainer.classList.remove('hidden');
-			hud.resizeMinimap();
-			currentState = States.FLYING;
-		}
-	});
-
-	// Minor delay to show threeContainer slightly before flight starts so it blends
 	setTimeout(() => {
-		if (currentState === States.TRANSITIONING) {
-			threeContainer.classList.remove('hidden');
+		const viewer = getViewer();
+		if (spawnMarker) {
+			viewer.entities.remove(spawnMarker);
+			spawnMarker = null;
 		}
-	}, 1500);
+
+		state.speed = 150;
+		state.pitch = 0;
+		state.roll = 0;
+		state.heading = 0;
+		
+		// Reset physics and set initial orientation
+		physics = new PlanePhysics();
+		physics.reset(state.lon, state.lat, state.alt, state.heading, state.pitch, state.roll);
+		
+		hud.resetTime();
+		hud.resizeMinimap(); 
+		
+		spawnInstruction.classList.add('hidden');
+		confirmSpawnBtn.classList.add('hidden');
+		
+		currentState = States.TRANSITIONING;
+
+		// Beautiful fly-in transition to cockpit
+		viewer.camera.flyTo({
+			destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, state.alt),
+			orientation: {
+				heading: Cesium.Math.toRadians(state.heading),
+				pitch: Cesium.Math.toRadians(state.pitch),
+				roll: Cesium.Math.toRadians(state.roll)
+			},
+			duration: 2.0,
+			easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+			complete: () => {
+				flightStartTime = Date.now();
+				uiContainer.classList.remove('hidden');
+				threeContainer.classList.remove('hidden');
+				hud.resizeMinimap();
+				currentState = States.FLYING;
+				if (vignette) vignette.style.opacity = '0';
+			}
+		});
+
+		// Minor delay to show threeContainer slightly before flight starts so it blends
+		setTimeout(() => {
+			if (currentState === States.TRANSITIONING) {
+				threeContainer.classList.remove('hidden');
+			}
+		}, 1500);
+	}, 500);
 };
 
 // Keyboard for Pause

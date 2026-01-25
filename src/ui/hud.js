@@ -8,22 +8,8 @@ export class HUD {
 		this.miniCtx = this.minimapCanvas.getContext('2d');
 		this.uiContainer = document.getElementById('uiContainer');
 
-		// Vignette Effect
-		this.vignette = document.createElement('div');
-		this.vignette.id = 'boost-vignette';
-		this.vignette.style.cssText = `
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.8) 150%);
-			pointer-events: none;
-			opacity: 0;
-			transition: opacity 0.3s ease;
-			z-index: 6;
-		`;
-		document.body.appendChild(this.vignette);
+		// Shared Vignette Effect (from index.html)
+		this.vignette = document.getElementById('transition-vignette');
 
 		this.startTime = Date.now();
 		
