@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { initCesium, setCameraToPlane, getViewer } from './world/cesiumWorld';
+import { initCesium, setCameraToPlane, getViewer, setControlsEnabled } from './world/cesiumWorld';
 import { PlanePhysics } from './plane/planePhysics';
 import { PlaneController } from './plane/planeController';
 import { movePosition } from './utils/math';
@@ -144,7 +144,32 @@ function update(dt) {
 	// New HUD Update
 	hud.update(state);
 
-	setCameraToPlane(state.lon, state.lat, state.alt, state.heading, state.pitch, state.roll);
+	// Calculate camera orientation local to plane
+	const planeHPR = new Cesium.HeadingPitchRoll(
+		Cesium.Math.toRadians(state.heading),
+		Cesium.Math.toRadians(state.pitch),
+		Cesium.Math.toRadians(state.roll)
+	);
+	const planeQuat = Cesium.Quaternion.fromHeadingPitchRoll(planeHPR);
+
+	// Mouse orbit as a local rotation
+	const orbitHPR = new Cesium.HeadingPitchRoll(
+		Cesium.Math.toRadians(input.cameraYaw),
+		Cesium.Math.toRadians(-input.cameraPitch),
+		0
+	);
+	const orbitQuat = Cesium.Quaternion.fromHeadingPitchRoll(orbitHPR);
+
+	// Combine: plane orientation * orbit offset
+	const finalQuat = Cesium.Quaternion.multiply(planeQuat, orbitQuat, new Cesium.Quaternion());
+	const finalHPR = Cesium.HeadingPitchRoll.fromQuaternion(finalQuat);
+
+	setCameraToPlane(
+		state.lon, state.lat, state.alt, 
+		Cesium.Math.toDegrees(finalHPR.heading),
+		Cesium.Math.toDegrees(finalHPR.pitch),
+		Cesium.Math.toDegrees(finalHPR.roll)
+	);
 
 	if (planeModel) {
 		// --- INERTIA EFFECTS ---
@@ -224,8 +249,29 @@ function update(dt) {
 		visualRotation.x += (targetRotX - visualRotation.x) * lerpFactor;
 		visualRotation.y += (targetRotY - visualRotation.y) * lerpFactor;
 
+		// Apply mouse camera orbit
+		// Calculate camera relative orientation to plane
+		const orbitQ = new THREE.Quaternion().setFromEuler(
+			new THREE.Euler(
+				THREE.MathUtils.degToRad(-input.cameraPitch),
+				THREE.MathUtils.degToRad(-input.cameraYaw),
+				0,
+				'YXZ'
+			)
+		);
+		
+		// Locked position: keep model in the middle, don't orbit position vector
 		planeModel.position.copy(visualOffset);
-		planeModel.rotation.set(visualRotation.x, visualRotation.y, visualRotation.z + boostRoll);
+		
+		// Flight lag/inertia orientation
+		const flightLagQ = new THREE.Quaternion().setFromEuler(
+			new THREE.Euler(visualRotation.x, visualRotation.y, visualRotation.z + boostRoll)
+		);
+		
+		// Final model rotation = Inverted camera orbit * Flight lag
+		// This ensures the model perspective always matches the Cesium camera viewpoint
+		const combinedQ = orbitQ.clone().invert().multiply(flightLagQ);
+		planeModel.quaternion.copy(combinedQ);
 	}
 }
 
@@ -329,6 +375,8 @@ function enterSpawnPicking(useVignette = true) {
 		currentState = States.PICK_SPAWN;
 		confirmSpawnBtn.classList.add('hidden');
 		
+		setControlsEnabled(true);
+		
 		if (spawnMarker) {
 			const viewer = getViewer();
 			viewer.entities.remove(spawnMarker);
@@ -410,10 +458,15 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 			spawnMarker = null;
 		}
 
+		setControlsEnabled(false);
+
 		state.speed = 150;
 		state.pitch = 0;
 		state.roll = 0;
 		state.heading = 0;
+		
+		// Reset mouse camera
+		controller.resetMouse();
 		
 		// Reset physics and set initial orientation
 		physics = new PlanePhysics();

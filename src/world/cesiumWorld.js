@@ -48,6 +48,13 @@ export function initCesium() {
 		v.scene.maximumRenderTimeChange = Infinity;
 		v.scene.globe.maximumScreenSpaceError = 2; // High detail terrain
 		v.resolutionScale = 0.75;
+
+		// Disable default Cesium camera controls
+		v.scene.screenSpaceCameraController.enableRotate = false;
+		v.scene.screenSpaceCameraController.enableTranslate = false;
+		v.scene.screenSpaceCameraController.enableZoom = false;
+		v.scene.screenSpaceCameraController.enableTilt = false;
+		v.scene.screenSpaceCameraController.enableLook = false;
 		
 		// Persistence & Caching - Prevents re-rendering the same area when rotating
 		v.scene.globe.tileCacheSize = 512; // Increase cache size (default is 100)
@@ -78,7 +85,23 @@ export function initCesium() {
 	viewer.scene.fog.enabled = true;
 	viewer.scene.fog.density = 0.0001;
 
+	// Disable default controls initially (especially for flight)
+	setControlsEnabled(false);
+
 	return viewer;
+}
+
+export function setControlsEnabled(enabled) {
+	if (!viewer) return;
+	[viewer, miniViewer].forEach(v => {
+		if (!v) return;
+		const ctrl = v.scene.screenSpaceCameraController;
+		ctrl.enableRotate = enabled;
+		ctrl.enableTranslate = enabled;
+		ctrl.enableZoom = enabled;
+		ctrl.enableTilt = enabled;
+		ctrl.enableLook = enabled;
+	});
 }
 
 export function setCameraToPlane(lon, lat, alt, heading, pitch, roll) {
