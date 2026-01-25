@@ -46,21 +46,28 @@ export function initCesium() {
 	[viewer, miniViewer].forEach(v => {
 		v.scene.requestRenderMode = true;
 		v.scene.maximumRenderTimeChange = Infinity;
-		v.scene.globe.maximumScreenSpaceError = 8;
-		v.resolutionScale = 0.8;
+		v.scene.globe.maximumScreenSpaceError = 2; // High detail terrain
+		v.resolutionScale = 0.75;
+		
+		// Persistence & Caching - Prevents re-rendering the same area when rotating
+		v.scene.globe.tileCacheSize = 512; // Increase cache size (default is 100)
+		v.scene.globe.preloadAncestors = true; // Preload parent tiles
+		v.scene.globe.preloadSiblings = true; // Preload tiles at the same level
+		v.scene.globe.loadingDescendantLimit = 4; // Allow more concurrent loads for smoother cache filling
+		
 		v._cesiumWidget._creditContainer.style.display = "none";
 	});
 
 	// Performance optimizations specifically for minimap
 	miniViewer.scene.globe.enableLighting = false;
-	if (miniViewer.scene.sun) miniViewer.scene.sun.show = false;
-	if (miniViewer.scene.moon) miniViewer.scene.moon.show = false;
+	miniViewer.scene.globe.showGroundAtmosphere = false;
 	miniViewer.scene.fog.enabled = false;
-	miniViewer.scene.highDynamicRange = false; // Disable HDR for performance
-	miniViewer.scene.postProcessStages.fxaa.enabled = false; // Disable FXAA for performance
-	miniViewer.resolutionScale = 1.0; 
-	miniViewer.scene.globe.maximumScreenSpaceError = 2; 
-	miniViewer.scene.globe.baseColor = Cesium.Color.BLACK; // Fallback color optimization
+	miniViewer.scene.highDynamicRange = false; 
+	miniViewer.scene.postProcessStages.fxaa.enabled = false; 
+	miniViewer.resolutionScale = 1.0; // Keep minimap sharp
+	miniViewer.scene.globe.maximumScreenSpaceError = 2; // Keep minimap terrain detailed
+	miniViewer.scene.globe.baseColor = Cesium.Color.BLACK; 
+	if (miniViewer.scene.skyAtmosphere) miniViewer.scene.skyAtmosphere.show = false;
 
 	// Better Sky and Lighting for main viewer
 	viewer.scene.globe.enableLighting = true;
