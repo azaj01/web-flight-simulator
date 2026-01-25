@@ -177,7 +177,7 @@ function update(dt) {
 		const accel = (state.speed - prevSpeed) / dt;
 		// Forward offset (away from camera) on acceleration, backward on braking
 		// We clamp this effect so post-boost deceleration doesn't throw the plane out of frame
-		const accelInertia = Math.max(-0.5, Math.min(1.5, accel * 0.001));
+		const accelInertia = input.isDragging ? 0 : Math.max(-0.5, Math.min(1.5, accel * 0.001));
 		let targetZ = BASE_PLANE_POS.z - accelInertia; 
 
 		// --- BOOST ANIMATION LOGIC ---
@@ -231,13 +231,14 @@ function update(dt) {
 
 		// 2. Lateral/Vertical (Pitch/Roll/Yaw)
 		// Model shifts slightly in frame when maneuvering
-		const targetX = BASE_PLANE_POS.x - (input.roll * 0.6) - (input.yaw * 0.12);
-		const targetY = BASE_PLANE_POS.y - (input.pitch * 0.1);
+		// Disable inertia during mouse dragging for absolute center spectate
+		const targetX = input.isDragging ? BASE_PLANE_POS.x : BASE_PLANE_POS.x - (input.roll * 0.6) - (input.yaw * 0.12);
+		const targetY = input.isDragging ? BASE_PLANE_POS.y : BASE_PLANE_POS.y - (input.pitch * 0.1);
 		
 		// 3. Rotation Lag
-		let targetRotZ = THREE.MathUtils.degToRad(-input.roll * 15);
-		const targetRotX = THREE.MathUtils.degToRad(input.pitch * 10);
-		const targetRotY = THREE.MathUtils.degToRad(-input.yaw * 4);
+		let targetRotZ = input.isDragging ? 0 : THREE.MathUtils.degToRad(-input.roll * 15);
+		const targetRotX = input.isDragging ? 0 : THREE.MathUtils.degToRad(input.pitch * 10);
+		const targetRotY = input.isDragging ? 0 : THREE.MathUtils.degToRad(-input.yaw * 4);
 
 		// Smooth transition (Spring-like lerp)
 		const lerpFactor = physicsResult.isBoosting ? 3.0 * dt : 5.0 * dt; // Slower lag during boost for effect

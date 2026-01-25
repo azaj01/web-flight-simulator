@@ -41,13 +41,15 @@ export class PlaneController {
 			yaw: 0,
 			boost: false,
 			cameraYaw: 0,
-			cameraPitch: 0
+			cameraPitch: 0,
+			isDragging: false
 		};
 	}
 	
 	update() {
 		// Boost logic
 		this.input.boost = !!this.keys[' '];
+		this.input.isDragging = this.mouseDragging;
 
 		// Throttle logic
 		const accelRate = 0.5;
