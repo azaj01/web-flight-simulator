@@ -1,4 +1,4 @@
-import { setMinimapCamera } from '../world/cesiumWorld';
+import { setMinimapCamera, getMiniViewer } from '../world/cesiumWorld';
 
 export class HUD {
 	constructor() {
@@ -37,6 +37,11 @@ export class HUD {
 	resizeMinimap() {
 		this.minimapCanvas.width = this.minimapCanvas.offsetWidth;
 		this.minimapCanvas.height = this.minimapCanvas.offsetHeight;
+
+		const miniViewer = getMiniViewer();
+		if (miniViewer) {
+			miniViewer.resize();
+		}
 	}
 
 	createHorizon() {

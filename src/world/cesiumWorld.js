@@ -99,6 +99,11 @@ export function setCameraToPlane(lon, lat, alt, heading, pitch, roll) {
 export function setMinimapCamera(lon, lat, altitude, heading) {
 	if (!miniViewer) return;
 
+	// Safety check: prevent rendering if container has no size (crashes Cesium)
+	if (miniViewer.canvas.width === 0 || miniViewer.canvas.height === 0) {
+		return;
+	}
+
 	miniViewer.camera.setView({
 		destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
 		orientation: {
