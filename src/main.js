@@ -39,10 +39,11 @@ let controller = new PlaneController();
 let hud = new HUD();
 
 // Visual Inertia Constants
-const BASE_PLANE_POS = new THREE.Vector3(0, -0.8, -3.2);
+const BASE_PLANE_POS = new THREE.Vector3(0, -0.8, -2.75);
 let visualOffset = new THREE.Vector3().copy(BASE_PLANE_POS);
 let visualRotation = new THREE.Euler(0, 0, 0);
 let boostRoll = 0;
+let currentBoostZOffset = 0;
 let boostRollDirection = 1;
 let lastIsBoosting = false;
 let lastSpeed = 0;
@@ -145,7 +146,9 @@ function update(dt) {
 		// 1. Longitudinal (Speed/Accel)
 		const accel = (state.speed - prevSpeed) / dt;
 		// Forward offset (away from camera) on acceleration, backward on braking
-		let targetZ = BASE_PLANE_POS.z - (accel * 0.001); 
+		// We clamp this effect so post-boost deceleration doesn't throw the plane out of frame
+		const accelInertia = Math.max(-0.5, Math.min(1.5, accel * 0.001));
+		let targetZ = BASE_PLANE_POS.z - accelInertia; 
 
 		// --- BOOST ANIMATION LOGIC ---
 		let boostZOffset = 0;
@@ -162,13 +165,13 @@ function update(dt) {
 			// Phase 1: Forward Surge (0% - 20%)
 			if (p < 0.2) {
 				const localP = p / 0.2;
-				boostZOffset = -(localP * localP) * 2.0; 
+				boostZOffset = -(localP * localP) * 1.5; 
 				boostRoll = 0;
 			} 
 			// Phase 2: Barrel Roll (20% - 80%)
 			else if (p < 0.8) {
 				const localP = (p - 0.2) / 0.6;
-				boostZOffset = -2.0;
+				boostZOffset = -1.5;
 				// Cubic Ease In-Out: slow-fast-slow
 				const easedP = localP < 0.5 
 					? 4 * localP * localP * localP 
@@ -179,8 +182,10 @@ function update(dt) {
 			// Phase 3: Retreat (80% - 100%)
 			else {
 				const localP = (p - 0.8) / 0.2;
-				const easeOut = 1.0 - ((1.0 - localP) * (1.0 - localP));
-				boostZOffset = -2.0 * (1.0 - easeOut);
+				// Use a very subtle smooth return, but don't come all the way back
+				// This keeps the plane at a safer distance from the camera
+				const easedReturn = localP * localP * (3 - 2 * localP);
+				boostZOffset = -1.5 + (easedReturn * 0.7); // Ends at -0.8 instead of 0
 				boostRoll = (Math.PI * 2 * physicsResult.boostRotations) * boostRollDirection;
 			}
 		} else {
@@ -189,7 +194,10 @@ function update(dt) {
 		}
 		lastIsBoosting = physicsResult.isBoosting;
 		
-		targetZ += boostZOffset;
+		// Smoothly interpolate the boost Z offset to prevent snapping
+		const zLerp = physicsResult.isBoosting ? 10.0 * dt : 2.0 * dt;
+		currentBoostZOffset += (boostZOffset - currentBoostZOffset) * zLerp;
+		targetZ += currentBoostZOffset;
 
 		// 2. Lateral/Vertical (Pitch/Roll/Yaw)
 		// Model shifts slightly in frame when maneuvering
