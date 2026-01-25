@@ -1,102 +1,66 @@
-# 🛩️ Web Flight Simulator Blueprint
+# Web Flight Simulator
 
-## 1. Project Objectives
+A high-performance, web-based flight simulator built with Three.js and CesiumJS, featuring real-world 3D terrain and interactive flight controls.
 
-Build a web-based flight simulator with the following features:
-- Real-world 3D world (terrain) based on CesiumJS.
-- Arcade-style aircraft controls.
-- Full game flow: Main Menu -> Location Selection -> Simulation.
-- Authentic military HUD UI with custom fonts.
+![Simulator Screenshot](screenshot.jpg)
 
-------------------------------------------------------------------------
+## 🚀 Features
 
-## 2. Core Technologies
+- **Real-World Global Terrain**: Powered by CesiumJS, explore the entire world with high-resolution 3D topography.
+- **Flight Controls**: Intuitive handling of pitch, roll, yaw, and speed for a smooth flying experience.
+- **Dynamic HUD**: Real-time Heads-Up Display showing speed, altitude, heading, and pitch ladder.
+- **Advanced Visuals**: Integrated Three.js for high-quality aircraft models and lighting effects.
+- **Interactive Minimap**: GPS-style satellite minimap to track your position in real-time.
+- **Multiple Game States**: Smooth transitions between main menu, spawn selection, and flight mode.
 
-### 2.1 Rendering & World
+## 🛠️ Technologies Used
 
--   **CesiumJS**
-    -   3D globe + real-world terrain.
-    -   Performance optimization using `requestRenderMode`.
--   **Three.js**
-    -   3D aircraft models (GLTF/Custom Mesh).
-    -   Dynamic lighting and atmosphere (Fog, Ambient Lighting).
+- **[Three.js](https://threejs.org/)**: 3D Engine for aircraft rendering and scene management.
+- **[CesiumJS](https://cesium.com/platform/cesiumjs/)**: Geospatial platform for real-world 3D terrain and satellite imagery.
+- **[Vite](https://vitejs.dev/)**: Next-generation frontend tooling for fast development.
+- **JavaScript (ES6+)**: Core logic and simulation.
 
-### 2.2 UI & UX
+## ⌨️ Controls
 
--   **Custom Overlay System**
-    -   Main Menu: Start & Options.
-    -   Spawn Mode: Interactive map click selection.
-    -   Pause Menu: ESC/P key support.
-    -   Crash Recovery: Respawn & Restart system.
+| Action | Key |
+| :--- | :--- |
+| **Pitch Down** | `Arrow Up` |
+| **Pitch Up** | `Arrow Down` |
+| **Roll Left/Right** | `Arrow Left` / `Arrow Right` |
+| **Yaw (Rudder)** | `A` / `D` |
+| **Increase Throttle** | `W` or `Shift` |
+| **Decrease Throttle** | `S` or `Ctrl` |
+| **Boost** | `Space` |
 
-### 2.3 Controls & Physics
+## 📦 Installation & Setup
 
--   **Keyboard Controls**
-    -   W/S/Shift/Ctrl: Throttle Control.
-    -   Arrows: Pitch & Roll.
-    -   A/D: Yaw/Rudder.
--   **Arcade Physics Loop**
-    -   Custom physics handler in `planePhysics.js`.
-    -   Terrain collision handling.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/dimartarmizi/web-flight-simulator.git
+   cd web-flight-simulator
+   ```
 
-------------------------------------------------------------------------
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-## 3. Project Folder Structure
+3. **Run development server:**
+   ```bash
+   npm run dev
+   ```
 
-    /web-flight-simulator
-    │
-    ├── /public
-    │   ├── index.html
-    │   ├── /assets
-    │   │   ├── /fonts (ACES07_Regular.ttf)
-    │   │   ├── /hud
-    │   │   └── /skybox
-    │
-    ├── /src
-    │   ├── main.js (Game State Controller)
-    │
-    │   ├── /world
-    │   │   ├── cesiumWorld.js (Terrain & Environment)
-    │
-    │   ├── /plane
-    │   │   ├── planePhysics.js
-    │   │   └── planeController.js
-    │
-    │   ├── /ui
-    │   │   └── hud.js (Minimap, Compass, Instruments)
-    │
-    │   └── /utils
-    │       └── math.js (Flight math)
+4. **Build for production:**
+   ```bash
+   npm run build
+   ```
 
-------------------------------------------------------------------------
+## � Credits & Attributions
 
-## 4. Game Flow
+- **3D Model**: ["Low poly F-15"](https://sketchfab.com/3d-models/low-poly-f-15-0c1cfa22d7094556914fcdfba75bef5d) by [SIpriv](https://sketchfab.com/sipriv), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Engine**: [Three.js](https://threejs.org/) community and contributors.
+- **Terrain & Map**: [CesiumJS](https://cesium.com/) by Cesium GS, Inc.
 
-1.  **Main Menu**: User is greeted with a title screen.
-2.  **Spawn Selection**: User picks any coordinate in the world.
-3.  **Transition**: Camera glides smoothly from map into the aircraft.
-4.  **Simulation**: User flies freely with active HUD instruments.
-5.  **Pause/Crash**: Interactive menus to restart or change locations.
+## �📜 License
 
-------------------------------------------------------------------------
-
-## 5. Roadmap & Development
-
--   **Phase 1 (Completed)**: Basic simulation, terrain, and keyboard controls.
--   **Phase 2 (Completed)**: UI Menu, Spawn Selection, Transitions, and Fonts.
--   **Phase 3 (Next)**: Integration of MediaPipe Hands for webcam gesture control.
--   **Phase 4 (Next)**: Engine sound effects, volumetric clouds, and simple mission systems.
-
-------------------------------------------------------------------------
-
-## 6. Target Specifications
-
-- Modern browser (Chrome/Edge/Firefox) with WebGL 2.0.
-- Hardware with 8GB RAM and stable internet connection (for Cesium terrain data streaming).
-
-------------------------------------------------------------------------
-
-## 7. Credits & Attributions
-
-- ["Low poly F-15"](https://sketchfab.com/3d-models/low-poly-f-15-0c1cfa22d7094556914fcdfba75bef5d) model by SIpriv, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-
+This project is licensed under the ISC License.
