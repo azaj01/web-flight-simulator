@@ -44,6 +44,12 @@ export class PlaneController {
 			cameraPitch: 0,
 			isDragging: false
 		};
+
+		this.sensitivity = 0.2;
+	}
+	
+	setSensitivity(value) {
+		this.sensitivity = value;
 	}
 	
 	update() {
@@ -73,9 +79,8 @@ export class PlaneController {
 
 		// Camera Yaw/Pitch (Mouse Drag)
 		if (this.mouseDragging) {
-			const sensitivity = 0.2;
-			this.input.cameraYaw += this.mouseDeltaX * sensitivity;
-			this.input.cameraPitch -= this.mouseDeltaY * sensitivity;
+			this.input.cameraYaw += this.mouseDeltaX * this.sensitivity;
+			this.input.cameraPitch -= this.mouseDeltaY * this.sensitivity;
 			
 			// Clamp pitch to avoid flipping over
 			this.input.cameraPitch = Math.max(-85, Math.min(85, this.input.cameraPitch));

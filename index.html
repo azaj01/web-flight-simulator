@@ -210,8 +210,9 @@
             font-size: 24px;
             cursor: pointer;
             margin: 10px;
-            min-width: 200px;
+            width: 250px; 
             transition: all 0.3s;
+            text-align: center;
         }
         
         .menu-btn:hover {
@@ -261,6 +262,7 @@
         #confirmSpawnBtn {
             background: rgba(0, 40, 0, 0.8) !important;
             animation: blink-green 1s infinite alternate;
+			width: fit-content;
         }
 
         #confirmSpawnBtn:hover {
@@ -368,6 +370,72 @@
             margin: 10px 0;
         }
         .key { color: #fff; }
+
+        /* Settings Styles */
+        .setting-item {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 5px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .setting-item span {
+            font-size: 16px;
+            color: #fff;
+        }
+        .setting-item select {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            font-family: 'AceCombat', sans-serif;
+            cursor: pointer;
+        }
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #222;
+            transition: .4s;
+            border: 1px solid #0f0;
+        }
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #0f0;
+            transition: .4s;
+        }
+        input:checked + .slider-toggle { background-color: rgba(0, 255, 0, 0.3); }
+        input:checked + .slider-toggle:before { transform: translateX(22px); }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #222;
+            height: 6px;
+            border: 1px solid #0f0;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #0f0;
+            cursor: pointer;
+        }
         
         /* Disabled Button Style */
         .menu-btn.disabled {
@@ -391,10 +459,70 @@
     <div id="mainMenu" class="overlay">
         <h1 class="menu-title">WEB FLIGHT SIMULATOR</h1>
         <button id="startBtn" class="menu-btn">PLAY</button>
-        <button id="optionsBtn" class="menu-btn disabled">OPTIONS</button>
+        <button id="optionsBtn" class="menu-btn">OPTIONS</button>
         <button id="helpBtn" class="menu-btn">HELP</button>
         <button id="creditsBtn" class="menu-btn">CREDITS</button>
         <button id="aboutBtn" class="menu-btn">ABOUT ME</button>
+    </div>
+
+    <!-- Options Modal -->
+    <div id="optionsModal" class="modal hidden">
+        <div class="modal-header">
+            <div class="modal-title">System Settings</div>
+            <button class="close-modal">X</button>
+        </div>
+        <div class="modal-body">
+            <h3>Graphics Settings</h3>
+            <div class="setting-item">
+                <span>Graphics Quality</span>
+                <select id="graphicsQuality">
+                    <option value="low">Low (High Perf)</option>
+                    <option value="medium" selected>Medium (Balanced)</option>
+                    <option value="high">High (High Quality)</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>Anti-Aliasing (FXAA)</span>
+                <label class="switch">
+                    <input type="checkbox" id="antialiasing" checked>
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <span>Fog Effects</span>
+                <label class="switch">
+                    <input type="checkbox" id="fogEffects" checked>
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+
+            <h3>Simulation Settings</h3>
+            <div class="setting-item">
+                <span>Field of View (FOV)</span>
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <input type="range" id="fovSlider" min="50" max="110" value="75" style="flex: 1;">
+                    <span id="fovValue" style="width: 30px;">75</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <span>Mouse Sensitivity</span>
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <input type="range" id="sensitivitySlider" min="0.05" max="1.0" step="0.05" value="0.2" style="flex: 1;">
+                    <span id="sensitivityValue" style="width: 30px;">0.2</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <span>Show HUD Controls</span>
+                <label class="switch">
+                    <input type="checkbox" id="showHud" checked>
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            
+            <div style="margin-top: 30px; display: flex; justify-content: center;">
+                <button id="saveOptionsBtn" class="menu-btn" style="padding: 10px 30px; font-size: 18px;">SAVE & APPLY</button>
+            </div>
+        </div>
     </div>
 
     <!-- Help Modal -->
@@ -462,6 +590,7 @@
     <div id="pauseMenu" class="overlay hidden">
         <h2 class="menu-title">PAUSED</h2>
         <button id="resumeBtn" class="menu-btn">RESUME</button>
+        <button id="pauseOptionsBtn" class="menu-btn">OPTIONS</button>
         <button id="restartBtn" class="menu-btn">RESTART</button>
         <button id="quitBtn" class="menu-btn">QUIT TO MENU</button>
     </div>

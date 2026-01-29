@@ -19,6 +19,98 @@ const States = {
 
 let currentState = States.MENU;
 
+// Game Settings
+let gameSettings = {
+	graphicsQuality: 'medium',
+	antialiasing: true,
+	fogEffects: true,
+	fov: 75,
+	mouseSensitivity: 0.2,
+	showHud: true
+};
+
+// Load settings from localStorage
+function loadSettings() {
+	const saved = localStorage.getItem('flightSimSettings');
+	if (saved) {
+		try {
+			const parsed = JSON.parse(saved);
+			gameSettings = { ...gameSettings, ...parsed };
+		} catch (e) {
+			console.error('Failed to load settings', e);
+		}
+	}
+	applySettings();
+	updateSettingsUI();
+}
+
+function saveSettings() {
+	localStorage.setItem('flightSimSettings', JSON.stringify(gameSettings));
+}
+
+function updateSettingsUI() {
+	document.getElementById('graphicsQuality').value = gameSettings.graphicsQuality;
+	document.getElementById('antialiasing').checked = gameSettings.antialiasing;
+	document.getElementById('fogEffects').checked = gameSettings.fogEffects;
+	document.getElementById('fovSlider').value = gameSettings.fov;
+	document.getElementById('fovValue').textContent = gameSettings.fov;
+	document.getElementById('sensitivitySlider').value = gameSettings.mouseSensitivity;
+	document.getElementById('sensitivityValue').textContent = gameSettings.mouseSensitivity;
+	document.getElementById('showHud').checked = gameSettings.showHud;
+}
+
+function applySettings() {
+	// Apply FOV to Three.js camera
+	if (camera) {
+		camera.fov = gameSettings.fov;
+		camera.updateProjectionMatrix();
+	}
+
+	// Apply mouse sensitivity
+	if (controller) {
+		controller.setSensitivity(gameSettings.mouseSensitivity);
+	}
+
+	// Apply settings to Cesium
+	const viewer = getViewer();
+	if (viewer) {
+		// Graphics Quality
+		if (gameSettings.graphicsQuality === 'low') {
+			viewer.resolutionScale = 0.5;
+			viewer.scene.globe.maximumScreenSpaceError = 4;
+		} else if (gameSettings.graphicsQuality === 'medium') {
+			viewer.resolutionScale = 1.0;
+			viewer.scene.globe.maximumScreenSpaceError = 2;
+		} else {
+			viewer.resolutionScale = window.devicePixelRatio;
+			viewer.scene.globe.maximumScreenSpaceError = 1.3;
+		}
+
+		// Anti-aliasing
+		viewer.scene.postProcessStages.fxaa.enabled = gameSettings.antialiasing;
+
+		// Fog
+		viewer.scene.fog.enabled = gameSettings.fogEffects;
+		viewer.scene.atmosphere.show = gameSettings.fogEffects;
+	}
+
+	// HUD visibility
+	const hudElements = [
+		document.getElementById('hud-top-left'),
+		document.getElementById('hud-top-right'),
+		document.getElementById('hud-speed-box'),
+		document.getElementById('hud-alt-box'),
+		document.getElementById('coords'),
+		document.getElementById('minimap-container')
+	];
+
+	hudElements.forEach(el => {
+		if (el) {
+			el.style.display = gameSettings.showHud ? 'block' : 'none';
+		}
+	});
+}
+
 // Flight State
 let state = {
 	lon: 106.8272,
@@ -348,6 +440,17 @@ function setupModalListeners() {
 		document.getElementById('helpModal').classList.remove('hidden');
 	};
 
+	document.getElementById('optionsBtn').onclick = () => {
+		closeAllModals();
+		updateSettingsUI();
+		document.getElementById('optionsModal').classList.remove('hidden');
+	};
+
+	document.getElementById('pauseOptionsBtn').onclick = () => {
+		updateSettingsUI();
+		document.getElementById('optionsModal').classList.remove('hidden');
+	};
+
 	document.getElementById('creditsBtn').onclick = () => {
 		closeAllModals();
 		document.getElementById('creditsModal').classList.remove('hidden');
@@ -356,6 +459,28 @@ function setupModalListeners() {
 	document.getElementById('aboutBtn').onclick = () => {
 		closeAllModals();
 		document.getElementById('aboutBtnModal').classList.remove('hidden');
+	};
+
+	// Options Logic
+	document.getElementById('fovSlider').oninput = (e) => {
+		document.getElementById('fovValue').textContent = e.target.value;
+	};
+
+	document.getElementById('sensitivitySlider').oninput = (e) => {
+		document.getElementById('sensitivityValue').textContent = e.target.value;
+	};
+
+	document.getElementById('saveOptionsBtn').onclick = () => {
+		gameSettings.graphicsQuality = document.getElementById('graphicsQuality').value;
+		gameSettings.antialiasing = document.getElementById('antialiasing').checked;
+		gameSettings.fogEffects = document.getElementById('fogEffects').checked;
+		gameSettings.fov = parseInt(document.getElementById('fovSlider').value);
+		gameSettings.mouseSensitivity = parseFloat(document.getElementById('sensitivitySlider').value);
+		gameSettings.showHud = document.getElementById('showHud').checked;
+		
+		saveSettings();
+		applySettings();
+		closeAllModals();
 	};
 
 	// Close Modals
@@ -573,6 +698,15 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 
 // Keyboard for Pause
 window.addEventListener('keydown', (e) => {
+	if (e.key === 'Escape') {
+		// Check for open modals first
+		const openModals = document.querySelectorAll('.modal:not(.hidden)');
+		if (openModals.length > 0) {
+			openModals.forEach(m => m.classList.add('hidden'));
+			return; // Stop here, we only wanted to close the modal
+		}
+	}
+
 	if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
 		if (currentState === States.FLYING) {
 			currentState = States.PAUSED;
@@ -619,6 +753,7 @@ initialCameraView = {
 
 initThree();
 setupSpawnPicker();
+loadSettings(); // Initialization settings
 
 // Ensure everything is hidden at start
 uiContainer.classList.add('hidden');
