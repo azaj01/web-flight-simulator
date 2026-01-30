@@ -445,6 +445,12 @@ html {
 	animation: spin 1s linear infinite;
 }
 
+#search-toggle-btn:hover .loader-spinner,
+#confirmSpawnBtn:hover .loader-spinner {
+	border-color: rgba(0, 0, 0, 0.2);
+	border-top-color: #000;
+}
+
 @keyframes spin {
 	to {
 		transform: rotate(360deg);
