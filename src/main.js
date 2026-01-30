@@ -5,6 +5,7 @@ import { PlanePhysics } from './plane/planePhysics';
 import { PlaneController } from './plane/planeController';
 import { movePosition } from './utils/math';
 import { HUD } from './ui/hud';
+import { JetFlame } from './plane/jetFlame';
 import * as Cesium from 'cesium';
 
 const States = {
@@ -120,6 +121,7 @@ let state = {
 
 let scene, camera, renderer;
 let planeModel;
+let jetFlames = [];
 let mixer, clock;
 let physics = new PlanePhysics();
 let controller = new PlaneController();
@@ -183,6 +185,17 @@ function initThree() {
 
 		planeModel.position.copy(BASE_PLANE_POS);
 		planeModel.scale.set(0.2, 0.2, 0.2);
+
+		const flameL = new JetFlame();
+		const flameR = new JetFlame();
+
+		flameL.group.position.set(-0.4, -0.065, 5);
+		flameR.group.position.set(0.4, -0.065, 5);
+
+
+		planeModel.add(flameL.group);
+		planeModel.add(flameR.group);
+		jetFlames.push(flameL, flameR);
 
 		mixer = new THREE.AnimationMixer(mesh);
 		const clip = THREE.AnimationClip.findByName(gltf.animations, 'F15 ldg');
@@ -331,6 +344,12 @@ function update(dt) {
 
 		const combinedQ = orbitQ.clone().invert().multiply(flightLagQ);
 		planeModel.quaternion.copy(combinedQ);
+
+		if (jetFlames.length > 0) {
+			jetFlames.forEach(flame => {
+				flame.update(state.throttle, state.isBoosting, clock.getElapsedTime(), dt);
+			});
+		}
 	}
 }
 
