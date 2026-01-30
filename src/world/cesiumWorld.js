@@ -56,6 +56,10 @@ export function initCesium() {
 		v.scene.screenSpaceCameraController.enableTilt = false;
 		v.scene.screenSpaceCameraController.enableLook = false;
 		
+		// Set min and max zoom distances
+		v.scene.screenSpaceCameraController.minimumZoomDistance = 200;
+		v.scene.screenSpaceCameraController.maximumZoomDistance = 25000000;
+		
 		// Persistence & Caching - High performance for flight
 		v.scene.globe.tileCacheSize = 2048; // Significantly increase cache for 360-degree turns
 		v.scene.globe.preloadAncestors = true;
@@ -99,15 +103,13 @@ export function initCesium() {
 
 export function setControlsEnabled(enabled) {
 	if (!viewer) return;
-	[viewer, miniViewer].forEach(v => {
-		if (!v) return;
-		const ctrl = v.scene.screenSpaceCameraController;
-		ctrl.enableRotate = enabled;
-		ctrl.enableTranslate = enabled;
-		ctrl.enableZoom = enabled;
-		ctrl.enableTilt = enabled;
-		ctrl.enableLook = enabled;
-	});
+	// Only enable controls for the main viewer
+	const ctrl = viewer.scene.screenSpaceCameraController;
+	ctrl.enableRotate = enabled;
+	ctrl.enableTranslate = enabled;
+	ctrl.enableZoom = enabled;
+	ctrl.enableTilt = enabled;
+	ctrl.enableLook = enabled;
 }
 
 export function setCameraToPlane(lon, lat, alt, heading, pitch, roll) {
