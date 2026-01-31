@@ -1,6 +1,6 @@
 # Web Flight Simulator
 
-A high-performance, web-based flight simulator built with Three.js and CesiumJS, featuring real-world 3D terrain and interactive flight controls.
+A web-based flight simulator built with Three.js and CesiumJS, featuring real-world 3D terrain and interactive flight controls.
 
 ![Simulator Screenshot](screenshot.jpg)
 
@@ -9,7 +9,7 @@ A high-performance, web-based flight simulator built with Three.js and CesiumJS,
 - **Real-World Global Terrain**: Powered by CesiumJS, explore the entire world with high-resolution 3D topography.
 - **Flight Controls**: Intuitive handling of pitch, roll, yaw, and speed for a smooth flying experience.
 - **Dynamic HUD**: Real-time Heads-Up Display showing speed, altitude, heading, and pitch ladder.
-- **Advanced Visuals**: Integrated Three.js for high-quality aircraft models and lighting effects.
+- **Advanced Visuals**: Integrated Three.js for aircraft models and lighting effects.
 - **Interactive Minimap**: GPS-style satellite minimap to track your position in real-time.
 - **Multiple Game States**: Smooth transitions between main menu, spawn selection, and flight mode.
 
