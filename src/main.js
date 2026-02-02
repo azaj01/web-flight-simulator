@@ -130,8 +130,8 @@ let state = {
 let currentRegionName = null;
 let lastGeocodeTime = 0;
 let lastGeocodePos = { lon: 0, lat: 0 };
-const GEOCODE_INTERVAL = 10000; // Check name every 10 seconds
-const GEOCODE_MIN_DIST = 1000;   // Or every 1km
+const GEOCODE_INTERVAL = 10000;
+const GEOCODE_MIN_DIST = 1000;
 
 let scene, camera, renderer;
 let planeModel;
@@ -180,6 +180,11 @@ const loadingStatus = {
 
 function updateLoadingUI() {
 	if (!loadingIndicator || !loadingText || !startBtn) return;
+
+	if (currentState === States.FLYING || currentState === States.TRANSITIONING) {
+		loadingIndicator.classList.add('hidden');
+		return;
+	}
 
 	let msg = "";
 	const isAllLoaded = loadingStatus.audio && loadingStatus.model && loadingStatus.cesium && loadingStatus.globe;
@@ -348,7 +353,6 @@ function update(dt) {
 	state.lat = newPos.lat;
 	state.alt = newPos.alt;
 
-	// Dynamic Region Detection logic (Reverse Geocoding)
 	const nowTime = Date.now();
 	const distFromLast = calculateDistance(state.lon, state.lat, lastGeocodePos.lon, lastGeocodePos.lat);
 
@@ -742,7 +746,7 @@ function exitSpawnPicking() {
 	confirmSpawnBtn.classList.add('hidden');
 	mainMenu.classList.remove('hidden');
 	currentState = States.MENU;
-	setRenderOptimization(true); // Continuous rendering for menu/loading
+	setRenderOptimization(true);
 
 	setControlsEnabled(false);
 
@@ -978,9 +982,10 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 
 		spawnInstruction.classList.add('hidden');
 		confirmSpawnBtn.classList.add('hidden');
+		loadingIndicator.classList.add('hidden');
 
 		currentState = States.TRANSITIONING;
-		setRenderOptimization(false); // Optimize for flight
+		setRenderOptimization(false);
 
 		viewer.camera.flyTo({
 			destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, state.alt),
@@ -1075,13 +1080,16 @@ const unregisterGlobeTracker = viewer.scene.postRender.addEventListener(() => {
 	}
 });
 
-// Terrain loading indicator for Spawn State
 viewer.scene.globe.tileLoadProgressEvent.addEventListener((queueLength) => {
-	if (currentState === States.PICK_SPAWN && loadingIndicator && loadingText) {
-		if (queueLength > 0) {
-			loadingText.textContent = "Loading Terrain...";
-			loadingIndicator.classList.remove('hidden');
-		} else {
+	if (loadingIndicator && loadingText) {
+		if (currentState === States.PICK_SPAWN) {
+			if (queueLength > 0) {
+				loadingText.textContent = "Loading Terrain...";
+				loadingIndicator.classList.remove('hidden');
+			} else {
+				loadingIndicator.classList.add('hidden');
+			}
+		} else if (currentState === States.FLYING || currentState === States.TRANSITIONING) {
 			loadingIndicator.classList.add('hidden');
 		}
 	}
