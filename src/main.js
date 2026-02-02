@@ -6,6 +6,7 @@ import { PlaneController } from './plane/planeController';
 import { movePosition } from './utils/math';
 import { HUD } from './ui/hud';
 import { JetFlame } from './plane/jetFlame';
+import { soundManager } from './utils/soundManager';
 import * as Cesium from 'cesium';
 
 const States = {
@@ -139,6 +140,7 @@ let currentBoostZOffset = 0;
 let boostRollDirection = 1;
 let lastIsBoosting = false;
 let initialCameraView = null;
+let lastThrottleLevel = 0;
 
 const mainMenu = document.getElementById('mainMenu');
 const pauseMenu = document.getElementById('pauseMenu');
@@ -149,6 +151,51 @@ const spawnInstruction = document.getElementById('spawnInstruction');
 const confirmSpawnBtn = document.getElementById('confirmSpawnBtn');
 
 let spawnMarker = null;
+
+async function initSounds() {
+	soundManager.init(camera);
+
+	await Promise.all([
+		soundManager.loadSound('boost', '/assets/sounds/boost.wav', false, 0.5),
+		soundManager.loadSound('throttle', '/assets/sounds/throttle.wav', false, 0.4),
+		soundManager.loadSound('explode', '/assets/sounds/explode.wav', false, 0.5),
+		soundManager.loadSound('jet-engine', '/assets/sounds/jet-engine.wav', true, 0.3),
+		soundManager.loadSound('spawn', '/assets/sounds/spawn.wav', false, 0.5),
+		soundManager.loadSound('roll', '/assets/sounds/roll.wav', true, 0.75),
+		soundManager.loadSound('pitch', '/assets/sounds/pitch.wav', true, 0.75),
+		soundManager.loadSound('button-click', '/assets/sounds/button-click.mp3', false, 0.5),
+		soundManager.loadSound('button-hover', '/assets/sounds/button-hover.mp3', false, 0.5),
+		soundManager.loadSound('zoom-in', '/assets/sounds/zoom-in.mp3', false, 0.5)
+	]);
+
+	setupButtonSounds();
+}
+
+function stopAllFlyingSounds(fadeOut = 0.5) {
+	soundManager.stop('jet-engine', fadeOut);
+	soundManager.stop('boost', fadeOut);
+	soundManager.stop('roll', fadeOut);
+	soundManager.stop('pitch', fadeOut);
+	soundManager.stop('throttle', fadeOut);
+}
+
+function setupButtonSounds() {
+	document.addEventListener('mouseover', (e) => {
+		const target = e.target.closest('button, .menu-btn, .clickable-ui');
+		if (target && !target._hovered) {
+			soundManager.play('button-hover');
+			target._hovered = true;
+			target.addEventListener('mouseleave', () => { target._hovered = false; }, { once: true });
+		}
+	}, true);
+
+	document.addEventListener('click', (e) => {
+		const target = e.target.closest('button, .menu-btn, .clickable-ui, #search-toggle-btn');
+		if (target) {
+			soundManager.play('button-click');
+		}
+	}, true);
+}
 
 function initThree() {
 	clock = new THREE.Clock();
@@ -168,6 +215,8 @@ function initThree() {
 	const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
 	directionalLight.position.set(5, 10, 5);
 	scene.add(directionalLight);
+
+	initSounds().catch(err => console.error('Failed to init sounds', err));
 
 	const loader = new GLTFLoader();
 	loader.load('/assets/models/low_poly_f-15.glb', (gltf) => {
@@ -231,6 +280,47 @@ function update(dt) {
 	state.alt = newPos.alt;
 
 	checkCrash();
+
+	if (soundManager.isPlaying('jet-engine')) {
+		const minSpeed = 100;
+		const maxSpeed = 1000;
+		const minVol = 0.25;
+		const maxVol = 0.5;
+		const speedFactor = Math.max(0, Math.min(1.0, (state.speed - minSpeed) / (maxSpeed - minSpeed)));
+		const engineVol = minVol + speedFactor * (maxVol - minVol);
+		soundManager.setVolume('jet-engine', engineVol);
+	}
+
+	if (state.isBoosting && !lastIsBoosting) {
+		soundManager.play('boost');
+	}
+
+	if (state.throttle > lastThrottleLevel + 0.01) {
+		if (!soundManager.isPlaying('throttle')) {
+			soundManager.play('throttle');
+		}
+	}
+	lastThrottleLevel = state.throttle;
+
+	if (Math.abs(input.pitch) > 0.5) {
+		if (!soundManager.isPlaying('pitch')) {
+			soundManager.play('pitch', 0.1);
+		}
+	} else {
+		if (soundManager.isPlaying('pitch')) {
+			soundManager.stop('pitch', 0.1);
+		}
+	}
+
+	if (Math.abs(input.roll) > 0.5 || Math.abs(input.yaw) > 0.5) {
+		if (!soundManager.isPlaying('roll')) {
+			soundManager.play('roll', 0.1);
+		}
+	} else {
+		if (soundManager.isPlaying('roll')) {
+			soundManager.stop('roll', 0.1);
+		}
+	}
 
 	hud.update(state);
 
@@ -376,6 +466,9 @@ function checkCrash() {
 		uiContainer.classList.add('hidden');
 		threeContainer.classList.add('hidden');
 		crashMenu.classList.remove('hidden');
+
+		soundManager.play('explode');
+		stopAllFlyingSounds(0.1);
 	}
 }
 
@@ -487,6 +580,7 @@ document.getElementById('resumeBtn').onclick = () => {
 	pauseMenu.classList.add('hidden');
 	uiContainer.classList.remove('hidden');
 	currentState = States.FLYING;
+	soundManager.play('jet-engine', 0.5);
 };
 
 document.getElementById('restartBtn').onclick = () => {
@@ -504,6 +598,8 @@ document.getElementById('respawnBtn').onclick = () => {
 };
 
 function enterSpawnPicking(useVignette = true) {
+	stopAllFlyingSounds(0.3);
+	soundManager.play('zoom-in');
 	const vignette = document.getElementById('transition-vignette');
 	if (useVignette && vignette) vignette.style.opacity = '1';
 
@@ -542,7 +638,7 @@ function enterSpawnPicking(useVignette = true) {
 		const viewer = getViewer();
 		viewer.camera.flyTo({
 			destination: Cesium.Cartesian3.fromDegrees(state.lon, state.lat, 15000),
-			duration: 1.5,
+			duration: 2.0,
 			complete: () => {
 				if (vignette) vignette.style.opacity = '0';
 			}
@@ -551,6 +647,8 @@ function enterSpawnPicking(useVignette = true) {
 }
 
 function exitSpawnPicking() {
+	soundManager.play('zoom-in');
+	stopAllFlyingSounds(0.3);
 	spawnInstruction.classList.add('hidden');
 	confirmSpawnBtn.classList.add('hidden');
 	mainMenu.classList.remove('hidden');
@@ -567,7 +665,7 @@ function exitSpawnPicking() {
 	const viewer = getViewer();
 	viewer.camera.flyTo({
 		...initialCameraView,
-		duration: 1.5
+		duration: 2.5
 	});
 }
 
@@ -756,6 +854,8 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 	const vignette = document.getElementById('transition-vignette');
 	if (vignette) vignette.style.opacity = '1';
 
+	soundManager.play('spawn');
+
 	setTimeout(() => {
 		const viewer = getViewer();
 		if (spawnMarker) {
@@ -803,6 +903,7 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 				threeContainer.classList.remove('hidden');
 				hud.resizeMinimap();
 				currentState = States.FLYING;
+				soundManager.play('jet-engine', 1.0);
 				if (vignette) vignette.style.opacity = '0';
 			}
 		});
@@ -824,10 +925,12 @@ window.addEventListener('keydown', (e) => {
 			currentState = States.PAUSED;
 			uiContainer.classList.add('hidden');
 			pauseMenu.classList.remove('hidden');
+			stopAllFlyingSounds(0.3);
 		} else if (currentState === States.PAUSED) {
 			currentState = States.FLYING;
 			pauseMenu.classList.add('hidden');
 			uiContainer.classList.remove('hidden');
+			soundManager.play('jet-engine', 0.5);
 		} else if (currentState === States.PICK_SPAWN && key === 'escape') {
 			exitSpawnPicking();
 		}
@@ -839,6 +942,7 @@ document.addEventListener('visibilitychange', () => {
 		currentState = States.PAUSED;
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
+		stopAllFlyingSounds(0.3);
 	}
 });
 
@@ -847,10 +951,21 @@ window.addEventListener('blur', () => {
 		currentState = States.PAUSED;
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
+		stopAllFlyingSounds(0.3);
 	}
 });
 
 const viewer = initCesium();
+
+const resumeAudio = () => {
+	if (soundManager.listener.context.state === 'suspended') {
+		soundManager.listener.context.resume();
+	}
+	window.removeEventListener('mousedown', resumeAudio);
+	window.removeEventListener('keydown', resumeAudio);
+};
+window.addEventListener('mousedown', resumeAudio);
+window.addEventListener('keydown', resumeAudio);
 
 initialCameraView = {
 	destination: viewer.camera.position.clone(),
