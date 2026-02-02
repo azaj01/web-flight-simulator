@@ -740,6 +740,7 @@ function enterSpawnPicking(useVignette = true) {
 		}
 		if (instructionText) {
 			instructionText.style.display = 'block';
+			instructionText.textContent = 'CLICK ANYWHERE ON THE MAP TO CHOOSE SPAWN POINT';
 		}
 		if (resultsContainer) {
 			resultsContainer.style.display = 'none';
@@ -795,7 +796,7 @@ function setupSpawnPicker() {
 	const viewer = getViewer();
 	const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
-	handler.setInputAction((click) => {
+	handler.setInputAction(async (click) => {
 		if (currentState !== States.PICK_SPAWN) return;
 
 		const ray = viewer.camera.getPickRay(click.position);
@@ -809,6 +810,17 @@ function setupSpawnPicker() {
 			state.lon = lon;
 			state.lat = lat;
 			state.alt = 2000;
+
+			const instructionText = document.getElementById('instruction-text');
+			if (instructionText) {
+				instructionText.textContent = "IDENTIFYING LOCATION...";
+				const locationName = await reverseGeocode(lon, lat);
+				if (locationName && currentState === States.PICK_SPAWN) {
+					instructionText.textContent = "LOCATION: " + locationName;
+				} else if (currentState === States.PICK_SPAWN) {
+					instructionText.textContent = "SPAWN POINT SELECTED";
+				}
+			}
 
 			if (spawnMarker) {
 				viewer.entities.remove(spawnMarker);
@@ -932,6 +944,7 @@ function setupLocationSearch() {
 
 							searchInput.style.display = 'none';
 							instructionText.style.display = 'block';
+							instructionText.textContent = "LOCATION: " + item.display_name.split(',')[0].toUpperCase();
 							searchInput.value = item.display_name;
 						};
 						resultsContainer.appendChild(div);
