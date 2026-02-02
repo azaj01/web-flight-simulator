@@ -1049,6 +1049,18 @@ const unregisterGlobeTracker = viewer.scene.postRender.addEventListener(() => {
 	}
 });
 
+// Terrain loading indicator for Spawn State
+viewer.scene.globe.tileLoadProgressEvent.addEventListener((queueLength) => {
+	if (currentState === States.PICK_SPAWN && loadingIndicator && loadingText) {
+		if (queueLength > 0) {
+			loadingText.textContent = "Loading Terrain...";
+			loadingIndicator.classList.remove('hidden');
+		} else {
+			loadingIndicator.classList.add('hidden');
+		}
+	}
+});
+
 const resumeAudio = () => {
 	if (soundManager.listener.context.state === 'suspended') {
 		soundManager.listener.context.resume();
