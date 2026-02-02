@@ -162,7 +162,7 @@ async function initSounds() {
 	soundManager.init(camera);
 
 	await Promise.all([
-		soundManager.loadSound('boost', '/assets/sounds/boost.wav', false, 0.5),
+		soundManager.loadSound('boost', '/assets/sounds/boost.wav', false, 0.35),
 		soundManager.loadSound('throttle', '/assets/sounds/throttle.wav', false, 0.4),
 		soundManager.loadSound('explode', '/assets/sounds/explode.wav', false, 0.5),
 		soundManager.loadSound('jet-engine', '/assets/sounds/jet-engine.wav', true, 0.3),
@@ -172,7 +172,7 @@ async function initSounds() {
 		soundManager.loadSound('button-click', '/assets/sounds/button-click.mp3', false, 1.0),
 		soundManager.loadSound('button-hover', '/assets/sounds/button-hover.mp3', false, 0.25),
 		soundManager.loadSound('zoom-in', '/assets/sounds/zoom-in.mp3', false, 0.5),
-		soundManager.loadSound('background', '/assets/sounds/background.mp3', true, 0.3)
+		soundManager.loadSound('background', '/assets/sounds/background.mp3', true, 1.0)
 	]);
 
 	setupButtonSounds();
@@ -292,8 +292,8 @@ function update(dt) {
 	if (soundManager.isPlaying('jet-engine')) {
 		const minSpeed = 100;
 		const maxSpeed = 1000;
-		const minVol = 0.25;
-		const maxVol = 0.5;
+		const minVol = 0.20;
+		const maxVol = 0.35;
 		const speedFactor = Math.max(0, Math.min(1.0, (state.speed - minSpeed) / (maxSpeed - minSpeed)));
 		const engineVol = minVol + speedFactor * (maxVol - minVol);
 		soundManager.setVolume('jet-engine', engineVol);

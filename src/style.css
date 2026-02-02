@@ -132,7 +132,7 @@ html {
 	clip-path: polygon(
 		evenodd,
 		0% 0%, calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 0% 100%, 0% 0%,
-		2px 2px, 2px calc(100% - 2px), calc(100% - 21px) calc(100% - 2px), calc(100% - 4px) 50%, calc(100% - 21px) 2px, 2px 2px
+		2px 2px, 2px calc(100% - 2px), calc(100% - 20.8px) calc(100% - 2px), calc(100% - 2.8px) 50%, calc(100% - 20.8px) 2px, 2px 2px
 	);
 }
 
@@ -149,7 +149,7 @@ html {
 	clip-path: polygon(
 		evenodd,
 		20px 0%, 100% 0%, 100% 100%, 20px 100%, 0% 50%, 20px 0%,
-		21px 2px, 4px 50%, 21px calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 2px, 21px 2px
+		20.8px 2px, 2.8px 50%, 20.8px calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 2px, 20.8px 2px
 	);
 }
 
