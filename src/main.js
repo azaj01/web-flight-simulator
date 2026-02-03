@@ -8,6 +8,7 @@ import { calculateDistance, reverseGeocode } from './world/regions';
 import { HUD } from './ui/hud';
 import { JetFlame } from './plane/jetFlame';
 import { soundManager } from './utils/soundManager';
+import { NPCSystem } from './systems/npcSystem';
 import * as Cesium from 'cesium';
 
 const States = {
@@ -145,6 +146,7 @@ let mixer, clock;
 let physics = new PlanePhysics();
 let controller = new PlaneController();
 let hud = new HUD();
+let npcSystem;
 
 let fps = 0;
 let frameCount = 0;
@@ -286,7 +288,7 @@ function setupButtonSounds() {
 function initThree() {
 	clock = new THREE.Clock();
 	scene = new THREE.Scene();
-	camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+	camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
 
 	renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -378,6 +380,10 @@ function update(dt) {
 	state.lat = newPos.lat;
 	state.alt = newPos.alt;
 
+	if (npcSystem) {
+		npcSystem.update(dt, state);
+	}
+
 	const nowTime = Date.now();
 	const distFromLast = calculateDistance(state.lon, state.lat, lastGeocodePos.lon, lastGeocodePos.lat);
 
@@ -437,7 +443,7 @@ function update(dt) {
 		}
 	}
 
-	hud.update(state);
+	hud.update(state, currentState === States.FLYING ? (npcSystem ? npcSystem.npcs : []) : []);
 
 	const planeHPR = new Cesium.HeadingPitchRoll(
 		Cesium.Math.toRadians(state.heading),
@@ -630,6 +636,7 @@ function checkCrash() {
 		uiContainer.classList.add('hidden');
 		threeContainer.classList.add('hidden');
 		crashMenu.classList.remove('hidden');
+		hud.update(state, []);
 
 		stopAllFlyingSounds(0.1);
 		setTimeout(() => soundManager.play('explode'), 50);
@@ -788,6 +795,7 @@ document.getElementById('respawnBtn').onclick = () => {
 };
 
 function enterSpawnPicking(useVignette = true) {
+	if (npcSystem) npcSystem.clear();
 	stopAllFlyingSounds(0.3);
 	soundManager.play('zoom-in');
 	soundManager.play('background', 1.0);
@@ -1079,6 +1087,10 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 		hud.resetTime();
 		hud.resizeMinimap();
 
+		if (npcSystem) {
+			npcSystem.spawnNPC(state.lon, state.lat, state.alt);
+		}
+
 		spawnInstruction.classList.add('hidden');
 		confirmSpawnBtn.classList.add('hidden');
 		loadingIndicator.classList.add('hidden');
@@ -1124,6 +1136,7 @@ window.addEventListener('keydown', (e) => {
 			uiContainer.classList.add('hidden');
 			pauseMenu.classList.remove('hidden');
 			pauseGameplaySounds();
+			hud.update(state, []);
 		} else if (currentState === States.PAUSED) {
 			currentState = States.FLYING;
 			pauseMenu.classList.add('hidden');
@@ -1141,6 +1154,7 @@ document.addEventListener('visibilitychange', () => {
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
 		pauseGameplaySounds();
+		hud.update(state, []);
 	}
 });
 
@@ -1150,6 +1164,7 @@ window.addEventListener('blur', () => {
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
 		pauseGameplaySounds();
+		hud.update(state, []);
 	}
 });
 
@@ -1213,6 +1228,7 @@ initialCameraView = {
 };
 
 initThree();
+npcSystem = new NPCSystem(viewer, scene, new GLTFLoader());
 setupSpawnPicker();
 setupLocationSearch();
 loadSettings();

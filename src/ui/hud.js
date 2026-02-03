@@ -1,4 +1,6 @@
-import { setMinimapCamera, getMiniViewer } from '../world/cesiumWorld';
+import { setMinimapCamera, getMiniViewer, getViewer } from '../world/cesiumWorld';
+import { calculateDistance } from '../world/regions';
+import * as Cesium from 'cesium';
 
 export class HUD {
 	constructor() {
@@ -35,6 +37,12 @@ export class HUD {
 		this.currentShakeY = 0;
 
 		this.minimapRange = 1;
+
+		this.npcMarkers = new Map();
+		this.npcContainer = document.createElement('div');
+		this.npcContainer.id = 'npc-markers-layer';
+		this.npcContainer.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:15;';
+		this.uiContainer.appendChild(this.npcContainer);
 
 		this.createHorizon();
 		this.createCompass();
@@ -197,7 +205,7 @@ export class HUD {
 		}
 	}
 
-	update(state) {
+	update(state, npcs = []) {
 		const lerpFactor = 0.5;
 
 		const lerpAngle = (current, target, factor) => {
@@ -342,10 +350,11 @@ export class HUD {
 			pitchLines.style.transform = `translateY(${this.smoothedPitch * 6}px)`;
 		}
 
-		this.drawMinimap(state);
+		this.drawMinimap(state, npcs);
+		this.updateNPCMarkers(npcs, state);
 	}
 
-	drawMinimap(state) {
+	drawMinimap(state, npcs = []) {
 		if (!this.miniCtx || !this.minimapCanvas) return;
 
 		const ctx = this.miniCtx;
@@ -369,6 +378,7 @@ export class HUD {
 		const metersPerGrid = this.minimapRange * 1000;
 		const verticalMeters = (this.currentZoom || (this.minimapRange * 1500)) * 1.1547;
 		const gridSize = (metersPerGrid * h) / verticalMeters;
+		const pixelsPerMeter = h / verticalMeters;
 
 		const limit = radius * 2;
 		for (let x = 0; x <= limit; x += gridSize) {
@@ -413,6 +423,34 @@ export class HUD {
 			ctx.restore();
 		});
 
+		npcs.forEach(npc => {
+			const dist = calculateDistance(state.lon, state.lat, npc.lon, npc.lat);
+			if (dist > this.minimapRange * 5000) return;
+
+			const dx_m = (npc.lon - state.lon) * 111320 * Math.cos(state.lat * Math.PI / 180);
+			const dy_m = (npc.lat - state.lat) * 111320;
+
+			const px = dx_m * pixelsPerMeter;
+			const py = -dy_m * pixelsPerMeter;
+
+			if (Math.sqrt(px * px + py * py) > radius - 5) return;
+
+			ctx.save();
+			ctx.translate(px, py);
+			ctx.rotate(npc.heading * Math.PI / 180);
+
+			ctx.fillStyle = '#fff';
+			ctx.shadowBlur = 0;
+			ctx.beginPath();
+			ctx.moveTo(0, -8);
+			ctx.lineTo(6, 6);
+			ctx.lineTo(0, 3);
+			ctx.lineTo(-6, 6);
+			ctx.closePath();
+			ctx.fill();
+			ctx.restore();
+		});
+
 		ctx.restore();
 
 		ctx.save();
@@ -441,6 +479,146 @@ export class HUD {
 		ctx.beginPath();
 		ctx.arc(centerX, centerY, sweepTime * radius, 0, Math.PI * 2);
 		ctx.stroke();
+	}
+
+	updateNPCMarkers(npcs, playerState) {
+		const viewer = getViewer();
+		if (!viewer) return;
+
+		const activeIds = new Set();
+		if (npcs && npcs.length > 0) {
+			this.npcContainer.style.display = 'block';
+			const scene = viewer.scene;
+			const camera = scene.camera;
+			const maxDist = 200000;
+
+			const scratchPos = new Cesium.Cartesian3();
+			const scratchPlayerPos = new Cesium.Cartesian3();
+
+			npcs.forEach(npc => {
+				Cesium.Cartesian3.fromDegrees(npc.lon, npc.lat, npc.alt, undefined, scratchPos);
+				Cesium.Cartesian3.fromDegrees(playerState.lon, playerState.lat, playerState.alt, undefined, scratchPlayerPos);
+				const dist = Cesium.Cartesian3.distance(scratchPos, scratchPlayerPos);
+
+				if (dist > maxDist) return;
+				const id = npc.id || npc.name;
+				activeIds.add(id);
+
+				let marker = this.npcMarkers.get(id);
+				if (!marker) {
+					marker = this.createNPCMarker(npc);
+					this.npcMarkers.set(id, marker);
+				}
+
+				const transformFunc = Cesium.SceneTransforms.worldToWindowCoordinates || Cesium.SceneTransforms.wgs84ToWindowCoordinates;
+				const windowPos = transformFunc ? transformFunc(scene, scratchPos) : null;
+
+				const direction = Cesium.Cartesian3.subtract(scratchPos, camera.position, new Cesium.Cartesian3());
+				const depth = Cesium.Cartesian3.dot(direction, camera.direction);
+
+				const isOffScreen = !windowPos || depth <= 0 ||
+					windowPos.x < 0 || windowPos.x > window.innerWidth ||
+					windowPos.y < 0 || windowPos.y > window.innerHeight;
+
+				if (isOffScreen) {
+					const dx = Cesium.Cartesian3.dot(direction, camera.right);
+					const dy = -Cesium.Cartesian3.dot(direction, camera.up);
+					this.updateOffScreenMarker(marker, dx, dy, npc, dist);
+				} else {
+					this.updateOnScreenMarker(marker, windowPos, npc, dist);
+				}
+			});
+		} else {
+			this.npcContainer.style.display = 'none';
+		}
+
+		for (const [id, marker] of this.npcMarkers) {
+			if (!activeIds.has(id)) {
+				marker.container.remove();
+				this.npcMarkers.delete(id);
+			}
+		}
+	}
+
+	createNPCMarker(npc) {
+		const container = document.createElement('div');
+		container.className = 'npc-marker-container';
+
+		const diamond = document.createElement('div');
+		diamond.className = 'npc-diamond';
+
+		const label = document.createElement('div');
+		label.className = 'npc-label';
+
+		const dot = document.createElement('div');
+		dot.className = 'npc-offscreen-dot';
+		dot.style.display = 'none';
+
+		const offscreenName = document.createElement('div');
+		offscreenName.className = 'npc-offscreen-name';
+		offscreenName.style.display = 'none';
+
+		container.appendChild(diamond);
+		container.appendChild(label);
+		container.appendChild(dot);
+		container.appendChild(offscreenName);
+		this.npcContainer.appendChild(container);
+
+		return { container, diamond, label, dot, offscreenName };
+	}
+
+	updateOnScreenMarker(marker, pos, npc, dist) {
+		marker.container.style.display = 'flex';
+		marker.container.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`;
+
+		marker.diamond.style.display = 'block';
+		marker.label.style.display = 'block';
+		marker.dot.style.display = 'none';
+		marker.offscreenName.style.display = 'none';
+
+		const distKm = (dist / 1000).toFixed(1);
+		const labelText = `${npc.name}\n${distKm} KM`;
+		if (marker.label.innerText !== labelText) {
+			marker.label.innerText = labelText;
+		}
+	}
+
+	updateOffScreenMarker(marker, dx, dy, npc, dist) {
+		marker.container.style.display = 'flex';
+		marker.diamond.style.display = 'none';
+		marker.label.style.display = 'none';
+		marker.dot.style.display = 'block';
+		marker.offscreenName.style.display = 'block';
+
+		const centerX = window.innerWidth / 2;
+		const centerY = window.innerHeight / 2;
+
+		if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) dy = -1;
+
+		const angle = Math.atan2(dy, dx);
+		const margin = 40;
+		const viewW = centerX - margin;
+		const viewH = centerY - margin;
+
+		const cosA = Math.cos(angle);
+		const sinA = Math.sin(angle);
+
+		let x, y;
+		if (Math.abs(viewW * sinA) > Math.abs(viewH * cosA)) {
+			y = viewH * Math.sign(sinA);
+			x = y * cosA / sinA;
+		} else {
+			x = viewW * Math.sign(cosA);
+			y = x * sinA / cosA;
+		}
+
+		const finalX = centerX + x;
+		const finalY = centerY + y;
+		marker.container.style.transform = `translate3d(${finalX}px, ${finalY}px, 0) translate(-50%, -50%)`;
+
+		if (marker.offscreenName.innerText !== npc.name) {
+			marker.offscreenName.innerText = npc.name;
+		}
 	}
 
 	updateFPS(fps) {
