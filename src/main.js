@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { initCesium, getViewer, setControlsEnabled, setRenderOptimization } from './world/cesiumWorld';
+import { initCesium, setCameraToPlane, getViewer, setControlsEnabled, setRenderOptimization } from './world/cesiumWorld';
 import { PlanePhysics } from './plane/planePhysics';
 import { PlaneController } from './plane/planeController';
 import { movePosition } from './utils/math';
@@ -150,7 +150,9 @@ let fps = 0;
 let frameCount = 0;
 let lastFpsUpdate = 0;
 
-const BASE_PLANE_POS = new THREE.Vector3(0, 0, 0);
+const BASE_PLANE_POS = new THREE.Vector3(0, -0.8, -2.75);
+let visualOffset = new THREE.Vector3().copy(BASE_PLANE_POS);
+let visualRotation = new THREE.Euler(0, 0, 0);
 let boostRoll = 0;
 let currentBoostZOffset = 0;
 let boostRollDirection = 1;
@@ -300,6 +302,9 @@ function initThree() {
 	directionalLight.position.set(5, 10, 5);
 	scene.add(directionalLight);
 
+	ambientLight.layers.enable(1);
+	directionalLight.layers.enable(1);
+
 	initSounds().catch(err => console.error('Failed to init sounds', err));
 
 	const loader = new GLTFLoader();
@@ -310,7 +315,10 @@ function initThree() {
 		planeModel.add(mesh);
 		scene.add(planeModel);
 
-		mesh.rotation.y = 0;
+		planeModel.layers.set(1);
+		planeModel.traverse(child => {
+			child.layers.set(1);
+		});
 
 		const box = new THREE.Box3().setFromObject(mesh);
 		const center = box.getCenter(new THREE.Vector3());
@@ -329,6 +337,10 @@ function initThree() {
 		planeModel.add(flameL.group);
 		planeModel.add(flameR.group);
 		jetFlames.push(flameL, flameR);
+
+		planeModel.traverse(child => {
+			child.layers.set(1);
+		});
 
 		mixer = new THREE.AnimationMixer(mesh);
 		const clip = THREE.AnimationClip.findByName(gltf.animations, 'flight_mode');
@@ -427,82 +439,116 @@ function update(dt) {
 
 	hud.update(state);
 
+	const planeHPR = new Cesium.HeadingPitchRoll(
+		Cesium.Math.toRadians(state.heading),
+		Cesium.Math.toRadians(state.pitch),
+		Cesium.Math.toRadians(state.roll)
+	);
+	const planeQuat = Cesium.Quaternion.fromHeadingPitchRoll(planeHPR);
+
+	const orbitHPR = new Cesium.HeadingPitchRoll(
+		Cesium.Math.toRadians(input.cameraYaw),
+		Cesium.Math.toRadians(-input.cameraPitch),
+		0
+	);
+	const orbitQuat = Cesium.Quaternion.fromHeadingPitchRoll(orbitHPR);
+
+	const finalQuat = Cesium.Quaternion.multiply(planeQuat, orbitQuat, new Cesium.Quaternion());
+	const finalHPR = Cesium.HeadingPitchRoll.fromQuaternion(finalQuat);
+
+	setCameraToPlane(
+		state.lon, state.lat, state.alt,
+		Cesium.Math.toDegrees(finalHPR.heading),
+		Cesium.Math.toDegrees(finalHPR.pitch),
+		Cesium.Math.toDegrees(finalHPR.roll)
+	);
+
 	if (planeModel) {
 		const accel = (state.speed - prevSpeed) / dt;
 		const accelInertia = input.isDragging ? 0 : Math.max(-0.5, Math.min(1.5, accel * 0.001));
+		let targetZ = BASE_PLANE_POS.z - accelInertia;
 
 		let boostZOffset = 0;
 		if (physicsResult.isBoosting) {
-			if (!lastIsBoosting) boostRollDirection = Math.random() > 0.5 ? 1 : -1;
-			const p = Math.max(0, Math.min(1.0, 1.0 - (physicsResult.boostTimeRemaining / physicsResult.boostDuration)));
-			if (p < 0.2) boostZOffset = -((p / 0.2) * (p / 0.2)) * 1.5;
-			else if (p < 0.8) boostZOffset = -1.5;
-			else boostZOffset = -1.5 + (((p - 0.8) / 0.2) ** 2) * 1.5;
-			boostRoll = (p < 0.2 ? 0 : (p < 0.8 ? ((p - 0.2) / 0.6) : 1)) * (Math.PI * 2 * physicsResult.boostRotations) * boostRollDirection;
+			if (!lastIsBoosting) {
+				boostRollDirection = Math.random() > 0.5 ? 1 : -1;
+			}
+
+			const T = physicsResult.boostDuration;
+			const p = Math.max(0, Math.min(1.0, 1.0 - (physicsResult.boostTimeRemaining / T)));
+
+			const totalRotationRad = Math.PI * 2 * physicsResult.boostRotations * boostRollDirection;
+
+			if (p < 0.2) {
+				const localP = p / 0.2;
+				boostZOffset = -(localP * localP) * 1.5;
+				boostRoll = 0;
+			}
+			else if (p < 0.8) {
+				const localP = (p - 0.2) / 0.6;
+				boostZOffset = -1.5;
+				const easedP = localP < 0.5
+					? 4 * localP * localP * localP
+					: 1 - Math.pow(-2 * localP + 2, 3) / 2;
+				boostRoll = easedP * (Math.PI * 2 * physicsResult.boostRotations) * boostRollDirection;
+			}
+			else {
+				const localP = (p - 0.8) / 0.2;
+				const easedReturn = localP * localP * (3 - 2 * localP);
+				boostZOffset = -1.5 + (easedReturn * 0.7);
+				boostRoll = (Math.PI * 2 * physicsResult.boostRotations) * boostRollDirection;
+			}
 		} else {
 			boostRoll = 0;
 			boostZOffset = 0;
 		}
 		lastIsBoosting = physicsResult.isBoosting;
-		currentBoostZOffset += (boostZOffset - currentBoostZOffset) * (physicsResult.isBoosting ? 10.0 * dt : 2.0 * dt);
+
+		const zLerp = physicsResult.isBoosting ? 10.0 * dt : 2.0 * dt;
+		currentBoostZOffset += (boostZOffset - currentBoostZOffset) * zLerp;
+		targetZ += currentBoostZOffset;
+
 
 		const time = performance.now() * 0.001;
 		const idleX = Math.sin(time * 0.8) * 0.035;
 		const idleY = Math.cos(time * 0.6) * 0.025;
+		const idleRotX = Math.sin(time * 0.5) * 0.015;
+		const idleRotY = Math.cos(time * 0.4) * 0.015;
+		const idleRotZ = Math.sin(time * 0.7) * 0.025;
 
-		planeModel.position.set(idleX, idleY, -accelInertia + currentBoostZOffset);
+		const targetX = input.isDragging ? BASE_PLANE_POS.x : BASE_PLANE_POS.x - (input.roll * 0.6) - (input.yaw * 0.12) + idleX;
+		const targetY = input.isDragging ? BASE_PLANE_POS.y : BASE_PLANE_POS.y - (input.pitch * 0.1) + idleY;
 
-		planeModel.rotation.set(0, 0, boostRoll, 'YXZ');
+		let targetRotZ = input.isDragging ? 0 : THREE.MathUtils.degToRad(-input.roll * 15) + idleRotZ;
+		const targetRotX = input.isDragging ? 0 : THREE.MathUtils.degToRad(input.pitch * 10) + idleRotX;
+		const targetRotY = input.isDragging ? 0 : THREE.MathUtils.degToRad(-input.yaw * 4) + idleRotY;
 
-		const followDistance = 3.0;
-		const followHeight = 0.0;
-		const visualCameraHeight = 0.75;
+		const lerpFactor = physicsResult.isBoosting ? 3.0 * dt : 5.0 * dt;
+		visualOffset.x += (targetX - visualOffset.x) * lerpFactor;
+		visualOffset.y += (targetY - visualOffset.y) * lerpFactor;
+		visualOffset.z += (targetZ - visualOffset.z) * lerpFactor;
 
-		const camOffset = new THREE.Vector3(0, followHeight + visualCameraHeight, followDistance);
+		visualRotation.z += (targetRotZ - visualRotation.z) * lerpFactor;
+		visualRotation.x += (targetRotX - visualRotation.x) * lerpFactor;
+		visualRotation.y += (targetRotY - visualRotation.y) * lerpFactor;
 
-		const orbitEuler = new THREE.Euler(
-			THREE.MathUtils.degToRad(-input.cameraPitch),
-			THREE.MathUtils.degToRad(-input.cameraYaw),
-			0,
-			'YXZ'
+		const orbitQ = new THREE.Quaternion().setFromEuler(
+			new THREE.Euler(
+				THREE.MathUtils.degToRad(-input.cameraPitch),
+				THREE.MathUtils.degToRad(-input.cameraYaw),
+				0,
+				'YXZ'
+			)
 		);
 
-		const worldCamOffset = camOffset.clone().applyEuler(orbitEuler);
+		planeModel.position.copy(visualOffset);
 
-		camera.position.set(
-			planeModel.position.x + worldCamOffset.x,
-			planeModel.position.y + worldCamOffset.y,
-			planeModel.position.z + worldCamOffset.z
+		const flightLagQ = new THREE.Quaternion().setFromEuler(
+			new THREE.Euler(visualRotation.x, visualRotation.y, visualRotation.z + boostRoll)
 		);
 
-		const cameraTarget = new THREE.Vector3(
-			planeModel.position.x,
-			planeModel.position.y + visualCameraHeight,
-			planeModel.position.z
-		);
-		camera.lookAt(cameraTarget);
-
-		const viewer = getViewer();
-		if (viewer) {
-			const planeCartesian = Cesium.Cartesian3.fromDegrees(state.lon, state.lat, state.alt);
-			const modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(planeCartesian);
-
-			const camTiltDeg = THREE.MathUtils.radToDeg(Math.atan2(followHeight, followDistance));
-
-			const enuCameraOffset = new Cesium.Cartesian3(worldCamOffset.x, -worldCamOffset.z, worldCamOffset.y);
-			const cameraPosition = Cesium.Matrix4.multiplyByPoint(modelMatrix, enuCameraOffset, new Cesium.Cartesian3());
-
-			viewer.camera.setView({
-				destination: cameraPosition,
-				orientation: {
-					heading: Cesium.Math.toRadians(state.heading + input.cameraYaw),
-					pitch: Cesium.Math.toRadians(state.pitch - input.cameraPitch - camTiltDeg),
-					roll: Cesium.Math.toRadians(state.roll)
-				}
-			});
-
-			viewer.camera.frustum.fov = THREE.MathUtils.degToRad(camera.fov);
-		}
+		const combinedQ = orbitQ.clone().invert().multiply(flightLagQ);
+		planeModel.quaternion.copy(combinedQ);
 
 		if (jetFlames.length > 0) {
 			jetFlames.forEach(flame => {
@@ -605,6 +651,20 @@ function animate() {
 	}
 
 	if (currentState === States.FLYING || currentState === States.PAUSED || currentState === States.TRANSITIONING) {
+		const viewer = getViewer();
+
+		renderer.autoClear = false;
+		renderer.clear();
+
+		if (viewer && viewer.camera && viewer.camera.frustum.fovy) {
+			const targetFov = Cesium.Math.toDegrees(viewer.camera.frustum.fovy);
+			camera.fov = targetFov;
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+		}
+
+		camera.layers.set(0);
+
 		if (currentState === States.FLYING) {
 			update(dt);
 		}
@@ -612,6 +672,16 @@ function animate() {
 		if (mixer) mixer.update(dt);
 
 		renderer.render(scene, camera);
+
+		renderer.clearDepth();
+
+		camera.fov = 75;
+		camera.updateProjectionMatrix();
+
+		camera.layers.set(1);
+
+		renderer.render(scene, camera);
+
 	} else {
 		threeContainer.classList.add('hidden');
 	}
@@ -996,6 +1066,8 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 		lastGeocodeTime = 0;
 		lastGeocodePos = { lon: 0, lat: 0 };
 
+		visualOffset.copy(BASE_PLANE_POS);
+		visualRotation.set(0, 0, 0);
 		boostRoll = 0;
 		currentBoostZOffset = 0;
 		lastIsBoosting = false;

@@ -110,6 +110,21 @@ export function setControlsEnabled(enabled) {
 	ctrl.enableLook = enabled;
 }
 
+export function setCameraToPlane(lon, lat, alt, heading, pitch, roll) {
+	if (!viewer) return;
+
+	viewer.camera.setView({
+		destination: Cesium.Cartesian3.fromDegrees(lon, lat, alt),
+		orientation: {
+			heading: Cesium.Math.toRadians(heading),
+			pitch: Cesium.Math.toRadians(pitch),
+			roll: Cesium.Math.toRadians(roll)
+		}
+	});
+
+	viewer.scene.requestRender();
+}
+
 export function setMinimapCamera(lon, lat, altitude, heading) {
 	if (!miniViewer) return;
 
