@@ -399,10 +399,6 @@ function update(dt) {
 	state.lat = newPos.lat;
 	state.alt = newPos.alt;
 
-	if (npcSystem) {
-		npcSystem.update(dt, state);
-	}
-
 	const nowTime = Date.now();
 	const distFromLast = calculateDistance(state.lon, state.lat, lastGeocodePos.lon, lastGeocodePos.lat);
 
@@ -462,8 +458,6 @@ function update(dt) {
 		}
 	}
 
-	hud.update(state, currentState === States.FLYING ? (npcSystem ? npcSystem.npcs : []) : []);
-
 	const planeHPR = new Cesium.HeadingPitchRoll(
 		Cesium.Math.toRadians(state.heading),
 		Cesium.Math.toRadians(state.pitch),
@@ -487,6 +481,11 @@ function update(dt) {
 		Cesium.Math.toDegrees(finalHPR.pitch),
 		Cesium.Math.toDegrees(finalHPR.roll)
 	);
+
+	if (npcSystem) {
+		npcSystem.update(dt, state);
+	}
+	hud.update(state, currentState === States.FLYING ? (npcSystem ? npcSystem.npcs : []) : []);
 
 	if (planeModel) {
 		const accel = (state.speed - prevSpeed) / dt;

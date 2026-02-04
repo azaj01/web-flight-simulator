@@ -14,6 +14,12 @@ export class NPCSystem {
 		this.animations = [];
 		this.loaded = false;
 
+		this._scratchMatrix = new Cesium.Matrix4();
+		this._scratchHPR = new Cesium.HeadingPitchRoll();
+		this._scratchCartesian = new Cesium.Cartesian3();
+		this._scratchThreeMatrix = new THREE.Matrix4();
+		this._scratchCameraMatrix = new Cesium.Matrix4();
+
 		this.loadModel();
 	}
 
@@ -97,10 +103,6 @@ export class NPCSystem {
 		if (!this.loaded) return;
 
 		const viewMatrix = this.viewer.camera.viewMatrix;
-		const scratchMatrix = new Cesium.Matrix4();
-		const scratchHPR = new Cesium.HeadingPitchRoll();
-		const scratchCartesian = new Cesium.Cartesian3();
-		const threeMatrix = new THREE.Matrix4();
 
 		this.npcs.forEach(npc => {
 			npc.time += dt;
@@ -144,27 +146,27 @@ export class NPCSystem {
 			npc.lat = newPos.lat;
 			npc.alt = newPos.alt;
 
-			const pos = Cesium.Cartesian3.fromDegrees(npc.lon, npc.lat, npc.alt, undefined, scratchCartesian);
+			const pos = Cesium.Cartesian3.fromDegrees(npc.lon, npc.lat, npc.alt, undefined, this._scratchCartesian);
 
-			scratchHPR.heading = Cesium.Math.toRadians(npc.heading);
-			scratchHPR.pitch = Cesium.Math.toRadians(npc.pitch);
-			scratchHPR.roll = Cesium.Math.toRadians(npc.roll);
+			this._scratchHPR.heading = Cesium.Math.toRadians(npc.heading);
+			this._scratchHPR.pitch = Cesium.Math.toRadians(npc.pitch);
+			this._scratchHPR.roll = Cesium.Math.toRadians(npc.roll);
 
 			const modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(
 				pos,
-				scratchHPR,
+				this._scratchHPR,
 				Cesium.Ellipsoid.WGS84,
 				Cesium.Transforms.eastNorthUpToFixedFrame,
-				scratchMatrix
+				this._scratchMatrix
 			);
 
-			const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, new Cesium.Matrix4());
+			const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, this._scratchCameraMatrix);
 
 			for (let i = 0; i < 16; i++) {
-				threeMatrix.elements[i] = cameraSpaceMatrix[i];
+				this._scratchThreeMatrix.elements[i] = cameraSpaceMatrix[i];
 			}
 
-			npc.mesh.matrix.copy(threeMatrix);
+			npc.mesh.matrix.copy(this._scratchThreeMatrix);
 			npc.mesh.updateMatrixWorld(true);
 
 			if (npc.mixer) {
