@@ -37,6 +37,17 @@ export class WeaponSystem {
 		this.lastFlarePulse = 0;
 	}
 
+	resetAmmo() {
+		for (const w of this.weapons) {
+			if (typeof w.maxAmmo !== 'undefined') w.ammo = w.maxAmmo;
+		}
+		if (this.flareWeapon && typeof this.flareWeapon.maxAmmo !== 'undefined') {
+			this.flareWeapon.ammo = this.flareWeapon.maxAmmo;
+		}
+		this.gunHeat = 0;
+		this.isGunOverheated = false;
+	}
+
 	getCurrentWeapon() {
 		return this.weapons[this.selectedWeaponIndex];
 	}

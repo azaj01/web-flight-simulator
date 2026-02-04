@@ -1126,6 +1126,10 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 		hud.resetTime();
 		hud.resizeMinimap();
 
+		if (weaponSystem && typeof weaponSystem.resetAmmo === 'function') {
+			weaponSystem.resetAmmo();
+		}
+
 		if (npcSystem) {
 			npcSystem.spawnNPC(state.lon, state.lat, state.alt);
 		}
