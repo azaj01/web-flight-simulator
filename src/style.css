@@ -1031,13 +1031,13 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #weapons-hud {
-	position: absolute;
-	bottom: 30px;
-	right: 30px;
-	display: flex;
-	align-items: flex-end;
-	pointer-events: none;
-	gap: 10px;
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    align-items: stretch;
+    pointer-events: none;
+    gap: 10px;
 }
 
 #weapon-list {
@@ -1050,7 +1050,7 @@ input[type="range"]::-webkit-slider-thumb {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	width: 220px;
+	width: 200px;
 	padding: 5px 10px;
 	background: rgba(0, 40, 0, 0.4);
 	border: 1px solid rgba(0, 255, 0, 0.2);
@@ -1107,7 +1107,6 @@ input[type="range"]::-webkit-slider-thumb {
 
 #aircraft-icon {
 	width: 70px;
-	height: 120px;
 	border: 1px solid rgba(0, 255, 0, 0.8);
 	background: rgba(0, 40, 0, 0.4);
 	display: flex;
@@ -1116,17 +1115,20 @@ input[type="range"]::-webkit-slider-thumb {
 	justify-content: center;
 	padding: 10px;
 	box-sizing: border-box;
+	box-shadow: 0 0 20px rgba(0, 255, 0, 0.12);
 }
 
 #aircraft-icon img {
-	width: 70px;
-	height: 70px;
-	filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
-	margin-bottom: 10px;
+	width: auto;
+	height: calc(100% - 20px);
+	max-width: 100%;
+	filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%) drop-shadow(0 0 8px rgba(0,255,0,0.6));
 }
 
 #aircraft-label {
 	font-size: 14px;
+	margin-top: 6px;
+	text-align: center;
 }
 
 .weapon-item.overheated {
