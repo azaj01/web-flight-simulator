@@ -244,6 +244,7 @@ async function initSounds() {
 		soundManager.loadSound('button-click', '/assets/sounds/button-click.mp3', false, 1.0),
 		soundManager.loadSound('button-hover', '/assets/sounds/button-hover.mp3', false, 0.25),
 		soundManager.loadSound('zoom-in', '/assets/sounds/zoom-in.mp3', false, 0.5),
+		soundManager.loadSound('missile-fire', '/assets/sounds/missile-firing-1.mp3', false, 0.6),
 		soundManager.loadSound('background', '/assets/sounds/background.mp3', true, 1.0),
 		soundManager.loadSound('terrain-pull-up', '/assets/sounds/terrain-pull-up.wav', false, 0.8),
 		soundManager.loadSound('warning', '/assets/sounds/warning.wav', false, 0.6)
@@ -1119,7 +1120,7 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 		} catch (e) {
 			state.heading = 0;
 		}
-		
+
 		currentRegionName = null;
 		lastGeocodeTime = 0;
 		lastGeocodePos = { lon: 0, lat: 0 };

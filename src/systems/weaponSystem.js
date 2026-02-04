@@ -63,12 +63,12 @@ export class WeaponSystem {
 	}
 
 	fire(playerState, specificWeaponId = null) {
-		const weapon = specificWeaponId 
+		const weapon = specificWeaponId
 			? this.weapons.find(w => w.id === specificWeaponId)
 			: this.weapons[this.selectedWeaponIndex];
-		
+
 		if (!weapon) return;
-		
+
 		const now = performance.now() * 0.001;
 
 		if (weapon.ammo <= 0) return;
@@ -117,6 +117,8 @@ export class WeaponSystem {
 				target
 			);
 			this.projectiles.push(missile);
+
+			try { soundManager.play('missile-fire'); } catch (e) { }
 		}
 	}
 
