@@ -240,13 +240,15 @@ async function initSounds() {
 		soundManager.loadSound('jet-engine', '/assets/sounds/jet-engine.wav', true, 0.3),
 		soundManager.loadSound('spawn', '/assets/sounds/spawn.wav', false, 0.5),
 		soundManager.loadSound('roll', '/assets/sounds/roll.wav', true, 0.75),
-		soundManager.loadSound('pitch', '/assets/sounds/pitch.wav', true, 0.75),
+		soundManager.loadSound('pitch', '/assets/sounds/pitch.mp3', true, 0.75),
 		soundManager.loadSound('button-click', '/assets/sounds/button-click.mp3', false, 1.0),
 		soundManager.loadSound('button-hover', '/assets/sounds/button-hover.mp3', false, 0.25),
 		soundManager.loadSound('zoom-in', '/assets/sounds/zoom-in.mp3', false, 0.5),
 		soundManager.loadSound('missile-fire', '/assets/sounds/missile-firing-1.mp3', false, 0.6),
+		soundManager.loadSound('rwr-tws', '/assets/sounds/rwr-tws.mp3', true, 0.25),
+		soundManager.loadSound('rwr-lock', '/assets/sounds/rwr-lock.mp3', false, 0.25),
 		soundManager.loadSound('background', '/assets/sounds/background.mp3', true, 1.0),
-		soundManager.loadSound('terrain-pull-up', '/assets/sounds/terrain-pull-up.wav', false, 0.8),
+		soundManager.loadSound('terrain-pull-up', '/assets/sounds/terrain-pull-up.mp3', false, 0.9),
 		soundManager.loadSound('warning', '/assets/sounds/warning.wav', false, 0.6)
 	]);
 
