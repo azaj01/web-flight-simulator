@@ -104,7 +104,13 @@ export class NPCSystem {
 
 		const viewMatrix = this.viewer.camera.viewMatrix;
 
-		this.npcs.forEach(npc => {
+		for (let i = this.npcs.length - 1; i >= 0; i--) {
+			const npc = this.npcs[i];
+			if (npc.destroyed) {
+				this.scene.remove(npc.mesh);
+				this.npcs.splice(i, 1);
+				continue;
+			}
 			npc.time += dt;
 
 			npc.behaviorTimer -= dt;
@@ -172,7 +178,7 @@ export class NPCSystem {
 			if (npc.mixer) {
 				npc.mixer.update(dt);
 			}
-		});
+		}
 
 		if (this.npcs.length < 3 && Date.now() - this.lastSpawnTime > 5000) {
 			this.spawnNPC(playerPos.lon, playerPos.lat, playerPos.alt);

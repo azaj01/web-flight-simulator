@@ -1,6 +1,7 @@
 export class PlaneController {
 	constructor() {
 		this.keys = {};
+		this.prevKeys = {};
 		window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
 		window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
@@ -43,8 +44,11 @@ export class PlaneController {
 			cameraPitch: 0,
 			isDragging: false,
 			fire: false,
+			fireGun: false,
+			fireMissile: false,
 			fireFlare: false,
-			weaponIndex: -1
+			weaponIndex: -1,
+			toggleWeapon: false
 		};
 
 		this.sensitivity = 0.2;
@@ -59,17 +63,20 @@ export class PlaneController {
 		this.input.isDragging = this.mouseDragging;
 		
 		this.input.fire = !!this.keys['enter'] || !!this.keys['f'];
+		this.input.fireGun = !!this.keys['shift'];
+		this.input.fireMissile = !!this.keys['control'];
 		this.input.fireFlare = !!this.keys['v'];
 		
+		this.input.toggleWeapon = (!!this.keys['q'] && !this.prevKeys['q']);
+
 		this.input.weaponIndex = -1;
 		if (this.keys['1']) this.input.weaponIndex = 0;
 		if (this.keys['2']) this.input.weaponIndex = 1;
-		if (this.keys['3']) this.input.weaponIndex = 2;
 
 		const accelRate = 0.5;
-		if (this.keys['w'] || this.keys['shift']) {
+		if (this.keys['w']) {
 			this.input.throttle = Math.min(1, this.input.throttle + accelRate * 0.016);
-		} else if (this.keys['s'] || this.keys['control']) {
+		} else if (this.keys['s']) {
 			this.input.throttle = Math.max(0, this.input.throttle - accelRate * 0.016);
 		}
 
@@ -94,6 +101,8 @@ export class PlaneController {
 			this.input.cameraYaw = this.lerp(this.input.cameraYaw, 0, 0.1);
 			this.input.cameraPitch = this.lerp(this.input.cameraPitch, 0, 0.1);
 		}
+
+		this.prevKeys = { ...this.keys };
 
 		return this.input;
 	}

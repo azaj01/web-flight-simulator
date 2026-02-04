@@ -33,6 +33,11 @@ export class HUD {
 			missile: this.weaponElems.missile.querySelector('.weapon-ammo'),
 			flare: this.weaponElems.flare.querySelector('.weapon-ammo')
 		};
+		this.weaponProgressElems = {
+			gun: this.weaponElems.gun.querySelector('.weapon-progress'),
+			missile: this.weaponElems.missile.querySelector('.weapon-progress'),
+			flare: this.weaponElems.flare.querySelector('.weapon-progress')
+		};
 
 		this.vignette = document.getElementById('transition-vignette');
 
@@ -540,7 +545,7 @@ export class HUD {
 					const dy = -Cesium.Cartesian3.dot(direction, camera.up);
 					this.updateOffScreenMarker(marker, dx, dy, npc, dist);
 				} else {
-					this.updateOnScreenMarker(marker, windowPos, npc, dist);
+					this.updateOnScreenMarker(marker, windowPos, npc, dist, playerState);
 				}
 			});
 		} else {
@@ -559,8 +564,15 @@ export class HUD {
 		const container = document.createElement('div');
 		container.className = 'npc-marker-container';
 
+		const visualWrapper = document.createElement('div');
+		visualWrapper.className = 'npc-visual-wrapper';
+
 		const diamond = document.createElement('div');
 		diamond.className = 'npc-diamond';
+
+		const lockBox = document.createElement('div');
+		lockBox.className = 'npc-lock-box';
+		lockBox.style.display = 'none';
 
 		const label = document.createElement('div');
 		label.className = 'npc-label';
@@ -573,16 +585,19 @@ export class HUD {
 		offscreenName.className = 'npc-offscreen-name';
 		offscreenName.style.display = 'none';
 
-		container.appendChild(diamond);
+		visualWrapper.appendChild(diamond);
+		visualWrapper.appendChild(lockBox);
+
+		container.appendChild(visualWrapper);
 		container.appendChild(label);
 		container.appendChild(dot);
 		container.appendChild(offscreenName);
 		this.npcContainer.appendChild(container);
 
-		return { container, diamond, label, dot, offscreenName };
+		return { container, diamond, label, dot, offscreenName, lockBox };
 	}
 
-	updateOnScreenMarker(marker, pos, npc, dist) {
+	updateOnScreenMarker(marker, pos, npc, dist, state) {
 		marker.container.style.display = 'flex';
 		marker.container.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`;
 
@@ -590,6 +605,23 @@ export class HUD {
 		marker.label.style.display = 'block';
 		marker.dot.style.display = 'none';
 		marker.offscreenName.style.display = 'none';
+
+		const ws = state.weaponSystem;
+		if (ws && ws.lockingTarget === npc) {
+			marker.lockBox.style.display = 'block';
+			if (ws.lockStatus === 'LOCKED') {
+				marker.lockBox.classList.remove('locking-blink');
+				marker.lockBox.style.borderColor = '#0f0';
+				marker.lockBox.innerHTML = '<span style="position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-weight:bold; color:#0f0; font-size:12px; text-shadow: 0 0 8px rgba(0, 255, 0, 0.8);">LOCK</span>';
+			} else if (ws.lockStatus === 'LOCKING') {
+				marker.lockBox.classList.add('locking-blink');
+				marker.lockBox.style.borderColor = '#0f0';
+				marker.lockBox.innerHTML = '';
+			}
+		} else {
+			marker.lockBox.style.display = 'none';
+			marker.lockBox.innerHTML = '';
+		}
 
 		const distKm = (dist / 1000).toFixed(1);
 		const labelText = `${npc.name}\n${distKm} KM`;
@@ -634,6 +666,11 @@ export class HUD {
 		if (marker.offscreenName.innerText !== npc.name) {
 			marker.offscreenName.innerText = npc.name;
 		}
+
+		if (marker.lockBox) {
+			marker.lockBox.style.display = 'none';
+			marker.lockBox.innerHTML = '';
+		}
 	}
 
 	updateFPS(fps) {
@@ -644,34 +681,62 @@ export class HUD {
 
 	updateWeapons(weaponSystem) {
 		const currentWeapon = weaponSystem.getCurrentWeapon();
+		const now = performance.now() * 0.001;
 
-		weaponSystem.weapons.forEach(weapon => {
-			const elem = this.weaponElems[weapon.id];
-			const ammoElem = this.weaponAmmoElems[weapon.id];
+		['gun', 'missile', 'flare'].forEach(id => {
+			const elem = this.weaponElems[id];
+			const ammoElem = this.weaponAmmoElems[id];
+			const progressElem = this.weaponProgressElems[id];
+
+			const weapon = id === 'flare' ? weaponSystem.flareWeapon : weaponSystem.weapons.find(w => w.id === id && (id !== 'missile' || w === currentWeapon));
+			const displayWeapon = weapon || (id === 'flare' ? weaponSystem.flareWeapon : weaponSystem.weapons.find(w => w.id === id));
 
 			if (elem) {
-				if (weapon === currentWeapon) {
+				const isActive = (currentWeapon && currentWeapon.id === id) || (id === 'flare' && (now - weaponSystem.flareWeapon.lastFire < 1.0));
+				const isGunOverheated = id === 'gun' && weaponSystem.isGunOverheated;
+
+				if (isActive) {
 					elem.classList.add('active');
-					
-					// Gun overheat visual
-					if (weapon.id === 'gun' && weaponSystem.isGunOverheated) {
-						elem.classList.add('overheated');
-					} else {
-						elem.classList.remove('overheated');
-					}
 				} else {
 					elem.classList.remove('active');
+				}
+
+				if (isGunOverheated) {
+					elem.classList.add('overheated');
+				} else {
 					elem.classList.remove('overheated');
+				}
+
+				if (isActive && id === 'missile') {
+					const nameElem = elem.querySelector('.weapon-name');
+					if (nameElem) nameElem.innerText = currentWeapon.name;
 				}
 			}
 
-			if (ammoElem) {
-				if (weapon.id === 'gun' && weaponSystem.isGunOverheated) {
-					ammoElem.innerText = 'OVERHEAT';
-				} else if (weapon.ammo === Infinity) {
-					ammoElem.innerText = 'INFINITY';
+			if (progressElem && displayWeapon) {
+				let progress = 0;
+				if (id === 'gun') {
+					progress = weaponSystem.gunHeat * 100;
 				} else {
-					ammoElem.innerText = weapon.ammo.toString().padStart(2, '0');
+					const timeSinceLast = now - displayWeapon.lastFire;
+					const reloadTime = id === 'flare' ? 1.0 : displayWeapon.fireRate;
+
+					if (timeSinceLast < reloadTime) {
+						progress = (timeSinceLast / reloadTime) * 100;
+					} else {
+						progress = 0;
+					}
+				}
+				progressElem.style.width = `${progress}%`;
+			}
+
+			if (ammoElem && displayWeapon) {
+				if (id === 'gun' && weaponSystem.isGunOverheated) {
+					ammoElem.innerText = 'OVERHEAT';
+				} else if (displayWeapon.ammo === Infinity) {
+					ammoElem.innerText = 'INF';
+				} else {
+					ammoElem.innerText = displayWeapon.ammo.toString().padStart(2, '0');
 				}
 			}
 		});
