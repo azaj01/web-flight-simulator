@@ -1,6 +1,26 @@
 import * as THREE from 'three';
 import * as Cesium from 'cesium';
 
+function makeSpriteTexture(color1 = '#ffffff', color2 = '#ffcc88') {
+	const size = 128;
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+
+	const grad = ctx.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, size / 2);
+	grad.addColorStop(0, color1);
+	grad.addColorStop(0.2, color2);
+	grad.addColorStop(0.6, 'rgba(0,0,0,0.2)');
+	grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+	ctx.fillStyle = grad;
+	ctx.fillRect(0, 0, size, size);
+	const tex = new THREE.CanvasTexture(canvas);
+	tex.needsUpdate = true;
+	return tex;
+}
+
 export class Flare {
 	constructor(scene, viewer, startPos, heading, pitch, speed) {
 		this.scene = scene;
@@ -20,35 +40,67 @@ export class Flare {
 		this.maxLife = 4.0;
 		this.active = true;
 
-		this.trail = [];
-		this.lastTrailSpawn = 0;
 		this._scratchCartesian = new Cesium.Cartesian3();
 		this._scratchMatrix = new Cesium.Matrix4();
 		this._scratchCameraMatrix = new Cesium.Matrix4();
 		this._scratchThreeMatrix = new THREE.Matrix4();
 
+		this.trailPool = [];
+		this.activeTrail = [];
+		this.lastTrailSpawn = 0;
+
+		this._initAssets();
 		this.initMesh();
 	}
 
+	_initAssets() {
+		this.coreTex = makeSpriteTexture('#ffffff', '#ffeecc');
+		this.glowTex = makeSpriteTexture('#ffddaa', '#ff9933');
+		this.smokeTex = (function(){
+			const size = 128;
+			const c = document.createElement('canvas');
+			c.width = size; c.height = size;
+			const ctx = c.getContext('2d');
+			const g = ctx.createRadialGradient(size/2,size/2,2,size/2,size/2,size/1.2);
+			g.addColorStop(0,'rgba(200,200,200,0.9)');
+			g.addColorStop(0.4,'rgba(180,180,180,0.5)');
+			g.addColorStop(1,'rgba(0,0,0,0)');
+			ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+			const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+		})();
+	}
+
 	initMesh() {
-		const group = new THREE.Group();
-		const geometry = new THREE.SphereGeometry(0.3, 16, 16);
-		const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-		const core = new THREE.Mesh(geometry, material);
-		group.add(core);
+		// Group to hold the core and glow; we'll set its camera-space matrix each frame
+		this.group = new THREE.Group();
+		this.group.matrixAutoUpdate = false;
 
-		const glowGeom = new THREE.SphereGeometry(0.8, 16, 16);
-		const glowMat = new THREE.MeshBasicMaterial({
-			color: 0xffaa44,
-			transparent: true,
-			opacity: 0.6
-		});
-		const glow = new THREE.Mesh(glowGeom, glowMat);
-		group.add(glow);
+		const coreMat = new THREE.SpriteMaterial({ map: this.coreTex, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+		const core = new THREE.Sprite(coreMat);
+		core.scale.set(1.0, 1.0, 1.0);
+		this.core = core;
+		this.group.add(core);
 
-		this.mesh = group;
-		this.mesh.matrixAutoUpdate = false;
-		this.scene.add(this.mesh);
+		const glowMat = new THREE.SpriteMaterial({ map: this.glowTex, color: 0xffaa44, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+		const glow = new THREE.Sprite(glowMat);
+		glow.scale.set(3.0, 3.0, 1.0);
+		this.glow = glow;
+		// add glow behind core for render ordering
+		this.group.add(glow);
+
+		this.scene.add(this.group);
+
+		// Preallocate a pooled set of smoke sprites for the trail
+		for (let i = 0; i < 80; i++) {
+			const mat = new THREE.SpriteMaterial({ map: this.smokeTex, color: 0xcccccc, transparent: true, opacity: 0, depthWrite: false });
+			const s = new THREE.Sprite(mat);
+			s.scale.set(0.8, 0.8, 1);
+			s.matrixAutoUpdate = false;
+			s._poolIndex = i;
+			this.trailPool.push(s);
+			// add to scene but invisible initially
+			this.scene.add(s);
+		}
 	}
 
 	update(dt) {
@@ -69,19 +121,18 @@ export class Flare {
 		this.verticalVelocity -= this.gravity * dt;
 		this.alt += this.verticalVelocity * dt;
 
-		this.speed *= 0.98;
+		this.speed *= 0.985;
 
 		this.updateThreeMatrix();
-		this.updateTrail(dt);
+		this._spawnTrailIfNeeded();
+		this._updateTrail(dt);
 
-		const opacity = this.life / this.maxLife;
-		this.mesh.traverse(child => {
-			if (child.material) {
-				if (child === this.mesh.children[1]) child.material.opacity = opacity * 0.6;
-				else child.material.opacity = opacity;
-				child.material.transparent = true;
-			}
-		});
+		const t = this.life / this.maxLife;
+		this.core.material.opacity = Math.min(1.0, t * 1.4);
+		this.glow.material.opacity = Math.min(0.9, t * 1.2);
+		const coreScale = 0.6 + (1 - t) * 0.2;
+		this.core.scale.set(coreScale, coreScale, 1);
+		this.glow.scale.set(2.5 * coreScale, 2.5 * coreScale, 1);
 	}
 
 	calculateMove(dist) {
@@ -134,70 +185,64 @@ export class Flare {
 		);
 
 		const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, new Cesium.Matrix4());
-		const threeMatrix = new THREE.Matrix4();
-		for (let j = 0; j < 16; j++) threeMatrix.elements[j] = cameraSpaceMatrix[j];
-		this.mesh.matrix.copy(threeMatrix);
-		this.mesh.updateMatrixWorld(true);
+		for (let j = 0; j < 16; j++) this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
+		this.group.matrix.copy(this._scratchThreeMatrix);
+		this.group.updateMatrixWorld(true);
 	}
 
-	updateTrail(dt) {
+	_spawnTrailIfNeeded() {
 		const now = performance.now();
-		if (now - this.lastTrailSpawn > 10) {
-			this.lastTrailSpawn = now;
+		if (now - this.lastTrailSpawn < 25) return;
+		this.lastTrailSpawn = now;
 
-			const smokeGeom = new THREE.SphereGeometry(0.2, 8, 8);
-			const smokeMat = new THREE.MeshBasicMaterial({
-				color: 0xcccccc,
-				transparent: true,
-				opacity: 0.3
-			});
-			const smoke = new THREE.Mesh(smokeGeom, smokeMat);
-			smoke.lon = this.lon;
-			smoke.lat = this.lat;
-			smoke.alt = this.alt;
-			smoke.life = 1.5;
-			smoke.maxLife = 1.5;
-			smoke.matrixAutoUpdate = false;
+		// pull one from pool
+		const s = this.trailPool.find(sp => sp.material.opacity === 0);
+		if (!s) return;
+		s._lon = this.lon;
+		s._lat = this.lat;
+		s._alt = this.alt;
+		s.life = 1.8 + Math.random() * 0.8;
+		s.maxLife = s.life;
+		s.randomScale = 0.6 + Math.random() * 1.2;
+		s.material.opacity = 0.9;
+		this.activeTrail.push(s);
+	}
 
-			this.scene.add(smoke);
-			this.trail.push(smoke);
-		}
-
+	_updateTrail(dt) {
 		const viewMatrix = this.viewer.camera.viewMatrix;
-		for (let i = this.trail.length - 1; i >= 0; i--) {
-			const t = this.trail[i];
+		for (let i = this.activeTrail.length - 1; i >= 0; i--) {
+			const t = this.activeTrail[i];
 			t.life -= dt;
 			if (t.life <= 0) {
-				this.scene.remove(t);
-				this.trail.splice(i, 1);
+				t.material.opacity = 0;
+				this.activeTrail.splice(i, 1);
 				continue;
 			}
 
-			if (!t.randomScale) t.randomScale = 0.7 + Math.random() * 0.6;
-			const scale = t.randomScale * (1.0 + (1.0 - t.life / t.maxLife) * 8.0);
-			t.scale.set(scale, scale, scale);
+			const lifeRatio = t.life / t.maxLife;
+			const scale = t.randomScale * (1.0 + (1.0 - lifeRatio) * 6.0);
+			t.scale.set(scale, scale, 1);
+			t.material.opacity = Math.max(0, lifeRatio * 0.45);
 
-			const opacity = (t.life / t.maxLife) * 0.3;
-			t.material.opacity = opacity;
-
-			const pos = Cesium.Cartesian3.fromDegrees(t.lon, t.lat, t.alt, undefined, this._scratchCartesian);
+			const pos = Cesium.Cartesian3.fromDegrees(t._lon, t._lat, t._alt, undefined, this._scratchCartesian);
 			const modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(pos, undefined, this._scratchMatrix);
 			const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, this._scratchCameraMatrix);
-
-			for (let j = 0; j < 16; j++) {
-				this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
-			}
+			for (let j = 0; j < 16; j++) this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
 			t.matrix.copy(this._scratchThreeMatrix);
 			t.updateMatrixWorld(true);
+
+			// slowly drift smoke downwards in local ENU
+			t._alt -= 0.2 * (1 - lifeRatio);
 		}
 	}
 
 	destroy() {
 		this.active = false;
-		this.scene.remove(this.mesh);
-		for (const t of this.trail) {
-			this.scene.remove(t);
+		if (this.group) this.scene.remove(this.group);
+		for (const s of this.trailPool) {
+			this.scene.remove(s);
 		}
-		this.trail = [];
+		this.trailPool = [];
+		this.activeTrail = [];
 	}
 }

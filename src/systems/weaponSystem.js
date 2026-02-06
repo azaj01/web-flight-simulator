@@ -140,7 +140,7 @@ export class WeaponSystem {
 				this.isGunOverheated = true;
 			}
 
-			const gunOffset = new THREE.Vector3(0, -3.0, 0.0);
+			const gunOffset = new THREE.Vector3(0, 0, 0);
 			const nosePos = this.calculateWeaponPos(gunOffset) || movePosition(startPos.lon, startPos.lat, startPos.alt, playerState.heading, playerState.pitch, 5);
 
 			const bullet = new Bullet(

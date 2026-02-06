@@ -138,6 +138,43 @@ export class Missile {
 		this.flameCore = new THREE.Mesh(coreGeom, coreMat);
 		this.flameMesh.add(this.flameCore);
 
+		// Add a camera-facing glow sprite so the flame remains visible at long distance
+		// Use a canvas radial gradient texture to get a warm fire color
+		const canvSize = 128;
+		const canv = (typeof document !== 'undefined') ? document.createElement('canvas') : null;
+		let glowTexture = null;
+		if (canv) {
+			canv.width = canv.height = canvSize;
+			const ctx = canv.getContext('2d');
+			const cx = canvSize / 2;
+			const cy = canvSize / 2;
+			const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cx);
+			grad.addColorStop(0.0, 'rgba(255,255,255,1)');
+			grad.addColorStop(0.18, 'rgba(255,245,200,1)');
+			grad.addColorStop(0.38, 'rgba(255,160,30,0.95)');
+			grad.addColorStop(0.62, 'rgba(220,60,10,0.6)');
+			grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+			ctx.fillStyle = grad;
+			ctx.fillRect(0, 0, canvSize, canvSize);
+			glowTexture = new THREE.CanvasTexture(canv);
+			glowTexture.minFilter = THREE.LinearFilter;
+			glowTexture.magFilter = THREE.LinearFilter;
+		}
+
+		const spriteMat = new THREE.SpriteMaterial({
+			map: glowTexture,
+			color: new THREE.Color(1.0, 0.95, 0.9),
+			transparent: true,
+			opacity: 0.98,
+			blending: THREE.AdditiveBlending,
+			depthTest: false,
+			depthWrite: false
+		});
+		this.flameGlow = new THREE.Sprite(spriteMat);
+		this.flameGlow.scale.set(2.2, 2.2, 1.0);
+		this.flameGlow.position.y = -bodyLen / 2 - 0.08;
+		this.mesh.add(this.flameGlow);
+
 		this.mesh.layers.enable(0);
 		this.mesh.layers.enable(1);
 
@@ -320,6 +357,20 @@ export class Missile {
 
 		this.mesh.matrix.copy(this._scratchThreeMatrix);
 		this.mesh.updateMatrixWorld(true);
+
+		// make flame glow sprite scale with camera distance so it's visible from far away
+		if (this.flameGlow && this.viewer && this.viewer.camera && this.viewer.camera.position) {
+			try {
+				const camPos = this.viewer.camera.position;
+				const dist = Cesium.Cartesian3.distance(pos, camPos) || 1.0;
+				// scale in world-space units (tuned experimentally)
+				const s = THREE.MathUtils.clamp(dist * 0.0016, 1.0, 80.0);
+				this.flameGlow.scale.set(s, s, 1.0);
+				// keep sprite always rendered on top-ish
+				this.flameGlow.renderOrder = 9999;
+				if (this.flameGlow.material) this.flameGlow.material.opacity = Math.max(0.25, Math.min(1.0, 80.0 / s));
+			} catch (e) { }
+		}
 	}
 
 	calculateDistSqToNPC(npc) {

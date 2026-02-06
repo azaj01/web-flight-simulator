@@ -15,87 +15,90 @@ const particles = {
 	},
 
 	spawnExplosion(lon, lat, alt, opts = {}) {
-		const count = opts.count || 48;
 		const isBig = !!opts.big;
-		for (let i = 0; i < count; i++) {
-			const size = isBig ? (0.9 + Math.random() * 2.6) : (0.4 + Math.random() * 1.2);
-			const geom = new THREE.SphereGeometry(size, 10, 8);
-			const mat = new THREE.MeshPhongMaterial({ color: 0xff6b22, emissive: 0xff2200, transparent: true, opacity: 1.0 });
+		const fireCount = opts.count || (isBig ? 64 : 36);
+
+		const flashSize = isBig ? 6.0 : 3.0;
+		const flashGeom = new THREE.SphereGeometry(flashSize, 12, 10);
+		const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, opacity: 1.0 });
+		const flash = new THREE.Mesh(flashGeom, flashMat);
+		flash.life = 0.18 + Math.random() * 0.12;
+		flash.maxLife = flash.life;
+		flash.lon = lon; flash.lat = lat; flash.alt = alt;
+		flash.isSmoke = false;
+		flash._expand = true; flash._expandAmount = isBig ? 5.0 : 3.0;
+		flash.matrixAutoUpdate = false;
+		this.scene.add(flash);
+		this.list.push(flash);
+
+		for (let i = 0; i < fireCount; i++) {
+			const size = (isBig ? 0.6 : 0.35) + Math.random() * (isBig ? 2.4 : 0.9);
+			const geom = new THREE.SphereGeometry(size, 8, 6);
+			const color = new THREE.Color().setHSL(0.08 - Math.random() * 0.05, 1.0, 0.5 + Math.random() * 0.2);
+			const mat = new THREE.MeshBasicMaterial({ color: color, blending: THREE.AdditiveBlending, transparent: true, opacity: 1.0 });
 			const m = new THREE.Mesh(geom, mat);
-			m.life = isBig ? (1.2 + Math.random() * 1.8) : (0.9 + Math.random() * 0.9);
+			m.life = (isBig ? 0.9 : 0.6) + Math.random() * (isBig ? 1.4 : 0.8);
 			m.maxLife = m.life;
-			m.lon = lon;
-			m.lat = lat;
-			m.alt = alt;
-			const h = (Math.random() * 360) * (Math.PI / 180);
-			const p = (Math.random() * 140 - 70) * (Math.PI / 180);
-			const speed = isBig ? (16 + Math.random() * 40) : (10 + Math.random() * 30);
+			m.lon = lon; m.lat = lat; m.alt = alt;
+			const h = Math.random() * Math.PI * 2;
+			const p = (Math.random() * 120 - 60) * (Math.PI / 180);
+			const speed = (isBig ? 18 : 10) + Math.random() * (isBig ? 60 : 36);
 			m._localVel = {
 				east: Math.sin(h) * Math.cos(p) * speed,
 				north: Math.cos(h) * Math.cos(p) * speed,
 				up: Math.sin(p) * speed
 			};
 			m.isSmoke = false;
+			m._expand = true; m._expandAmount = isBig ? 2.8 : 1.8;
 			m.matrixAutoUpdate = false;
 			this.scene.add(m);
 			this.list.push(m);
 		}
 
-		const smokeCount = typeof opts.smokeCount !== 'undefined' ? opts.smokeCount : 6;
-		if (opts.big) {
-			const clusters = Math.max(1, Math.floor(smokeCount / 2));
-			for (let c = 0; c < clusters; c++) {
-				const clusterVel = {
-					east: (Math.random() - 0.5) * 1.5,
-					north: (Math.random() - 0.5) * 1.5,
-					up: 1.0 + Math.random() * 2.0
-				};
-				const pieces = Math.max(1, Math.floor(smokeCount / clusters));
-				for (let i = 0; i < pieces; i++) {
-					const size = 2.2 + Math.random() * 1.8;
-					const geom = new THREE.SphereGeometry(size, 12, 10);
-					const gray = 0.2 + Math.random() * 0.5;
-					const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(gray, gray, gray), transparent: true, opacity: 0.8 });
-					const m = new THREE.Mesh(geom, mat);
-					m.life = 1.0 + Math.random() * 1.2;
-					m.maxLife = m.life;
-					m.lon = lon + (Math.random() - 0.5) * 0.00012;
-					m.lat = lat + (Math.random() - 0.5) * 0.00012;
-					m.alt = alt - 0.5 + (Math.random() - 0.5) * 0.6;
-					m._localVel = {
-						east: clusterVel.east + (Math.random() - 0.5) * 0.8,
-						north: clusterVel.north + (Math.random() - 0.5) * 0.8,
-						up: clusterVel.up + (Math.random() - 0.5) * 0.6
-					};
-					m.isSmoke = true;
-					m.matrixAutoUpdate = false;
-					this.scene.add(m);
-					this.list.push(m);
-				}
-			}
-		} else {
-			for (let i = 0; i < smokeCount; i++) {
-				const size = 1.8 + Math.random() * 1.0;
-				const geom = new THREE.SphereGeometry(size, 10, 8);
-				const mat = new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.85 });
-				const m = new THREE.Mesh(geom, mat);
-				m.life = 0.8 + Math.random() * 1.0;
-				m.maxLife = m.life;
-				m.lon = lon;
-				m.lat = lat;
-				m.alt = alt - 0.5;
-				const h = Math.random() * Math.PI * 2;
-				const speed = 1 + Math.random() * 4;
-				m._localVel = {
-					east: Math.sin(h) * speed * 0.4,
-					north: Math.cos(h) * speed * 0.4,
-					up: 0.6 + Math.random() * 1.8
-				};
-				m.isSmoke = true;
-				m.matrixAutoUpdate = false;
-				this.scene.add(m);
-				this.list.push(m);
-			}
+		const sparkCount = isBig ? 32 : 18;
+		for (let i = 0; i < sparkCount; i++) {
+			const geom = new THREE.SphereGeometry(0.06 + Math.random() * 0.14, 6, 6);
+			const mat = new THREE.MeshBasicMaterial({ color: 0xffffcc, blending: THREE.AdditiveBlending, transparent: true });
+			const m = new THREE.Mesh(geom, mat);
+			m.life = 0.18 + Math.random() * 0.36;
+			m.maxLife = m.life;
+			m.lon = lon; m.lat = lat; m.alt = alt;
+			const h = Math.random() * Math.PI * 2;
+			const p = (Math.random() * 120 - 60) * (Math.PI / 180);
+			const speed = (isBig ? 36 : 18) + Math.random() * (isBig ? 120 : 60);
+			m._localVel = {
+				east: Math.sin(h) * Math.cos(p) * speed,
+				north: Math.cos(h) * Math.cos(p) * speed,
+				up: Math.sin(p) * speed
+			};
+			m.isSmoke = false;
+			m._expand = true; m._expandAmount = 0.6;
+			m.matrixAutoUpdate = false;
+			this.scene.add(m);
+			this.list.push(m);
+		}
+
+		const smokeCount = typeof opts.smokeCount !== 'undefined' ? opts.smokeCount : (isBig ? 8 : 5);
+		for (let i = 0; i < smokeCount; i++) {
+			const size = (isBig ? 3.0 : 1.8) + Math.random() * (isBig ? 4.0 : 1.6);
+			const geom = new THREE.SphereGeometry(size, 12, 10);
+			const gray = 0.08 + Math.random() * 0.3;
+			const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(gray, gray, gray), transparent: true, opacity: 0.75 });
+			const m = new THREE.Mesh(geom, mat);
+			m.life = (isBig ? 1.0 : 0.6) + Math.random() * (isBig ? 1.2 : 0.6);
+			m.maxLife = m.life;
+			m.lon = lon + (Math.random() - 0.5) * 0.00018;
+			m.lat = lat + (Math.random() - 0.5) * 0.00018;
+			m.alt = alt - 0.6 + (Math.random() - 0.5) * 0.8;
+			m._localVel = {
+				east: (Math.random() - 0.5) * 2.2,
+				north: (Math.random() - 0.5) * 2.2,
+				up: 0.6 + Math.random() * 2.6
+			};
+			m.isSmoke = true;
+			m.matrixAutoUpdate = false;
+			this.scene.add(m);
+			this.list.push(m);
 		}
 
 		try { if (this.viewer) this.viewer.scene && this.viewer.scene.requestRender(); } catch (e) { }
@@ -114,15 +117,26 @@ const particles = {
 			const shapeType = Math.random();
 			let geom;
 			const size = 0.4 + Math.random() * 2.4;
-			if (shapeType < 0.33) {
-				geom = new THREE.BoxGeometry(size, size * 0.4, size * 0.3);
-			} else if (shapeType < 0.66) {
-				geom = new THREE.SphereGeometry(size * 0.6, 8, 6);
+			if (shapeType < 0.6) {
+				const points = [];
+				const numPoints = 3 + Math.floor(Math.random() * 3);
+				const radius = size;
+				for (let k = 0; k < numPoints; k++) {
+					const ang = (k / numPoints) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+					const r = radius * (0.35 + Math.random() * 1.1);
+					points.push(new THREE.Vector2(Math.cos(ang) * r, Math.sin(ang) * r));
+				}
+				const shape = new THREE.Shape(points);
+				const depth = Math.max(0.03, size * 0.12);
+				const extrudeSettings = { depth: depth, bevelEnabled: false };
+				geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+				geom.translate(0, 0, -depth * 0.5);
 			} else {
-				geom = new THREE.CylinderGeometry(size * 0.4, size * 0.4, size, 3);
+				geom = new THREE.ConeGeometry(size * 0.6, size, 3);
+				geom.rotateX(Math.PI / 2);
 			}
-			const gray = 0.03 + Math.random() * 0.2;
-			const mat = new THREE.MeshPhongMaterial({ color: new THREE.Color(gray, gray, gray) });
+			const gray = 0.0 + Math.random() * 0.06;
+			const mat = new THREE.MeshPhongMaterial({ color: new THREE.Color(gray, gray, gray), flatShading: true, side: THREE.DoubleSide });
 			const m = new THREE.Mesh(geom, mat);
 			m.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
 			m.scale.set(1.0 + Math.random() * 1.5, 1.0 + Math.random() * 1.5, 1.0 + Math.random() * 1.5);
@@ -181,7 +195,7 @@ const particles = {
 		const viewMatrix = this.viewer.camera.viewMatrix;
 		for (let i = this.list.length - 1; i >= 0; i--) {
 			const p = this.list[i];
-			p.life -= dt * (p.isSmoke ? 0.4 : 1.0);
+			p.life -= dt * (p.isSmoke ? 1.1 : 1.0);
 			if (p.life <= 0) {
 				this.scene.remove(p);
 				this.list.splice(i, 1);
@@ -208,11 +222,17 @@ const particles = {
 
 			const t = p.life / p.maxLife;
 			if (p.material && p.material.opacity !== undefined) {
-				if (p.isSmoke) p.material.opacity = Math.max(0, Math.min(1, 0.4 + t * 0.8));
-				else p.material.opacity = Math.max(0, t);
+				if (p.isSmoke) {
+					p.material.opacity = Math.max(0, t * 0.85);
+				} else p.material.opacity = Math.max(0, t);
+			}
+			if (p._expand) {
+				const grow = 1.0 + (1.0 - t) * (p._expandAmount || 1.0);
+				if (!p.scale) p.scale = new THREE.Vector3(1, 1, 1);
+				p.scale.set(grow, grow, grow);
 			}
 			if (p.isSmoke) {
-				const grow = 1.0 + (1.0 - t) * 3.0;
+				const grow = 1.0 + (1.0 - t) * 2.0;
 				p.scale.set(grow, grow, grow);
 			}
 

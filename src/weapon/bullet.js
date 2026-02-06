@@ -27,24 +27,77 @@ export class Bullet {
 	}
 
 	initMesh() {
-		const geometry = new THREE.CylinderGeometry(0.05, 0.03, 8, 16);
-		geometry.translate(0, -4, 0);
-		const material = new THREE.MeshBasicMaterial({
-			color: 0xffffff,
-			transparent: true,
-			opacity: 1.0
-		});
-		this.mesh = new THREE.Mesh(geometry, material);
+		const createGradientMaterial = (width, opacity, intensity) => {
+			return new THREE.ShaderMaterial({
+				uniforms: {
+					colorStart: { value: new THREE.Color(0xff3300) },
+					colorMid: { value: new THREE.Color(0xffcc00) },
+					colorEnd: { value: new THREE.Color(0xffffff) },
+					opacity: { value: opacity },
+					intensity: { value: intensity }
+				},
+				vertexShader: `
+					varying vec2 vUv;
+					void main() {
+						vUv = uv;
+						gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+					}
+				`,
+				fragmentShader: `
+					uniform vec3 colorStart;
+					uniform vec3 colorMid;
+					uniform vec3 colorEnd;
+					uniform float opacity;
+					uniform float intensity;
+					varying vec2 vUv;
+					void main() {
+						float t = clamp(vUv.y, 0.0, 1.0);
+						vec3 a = mix(colorStart, colorMid, smoothstep(0.0, 0.5, t));
+						vec3 b = mix(colorMid, colorEnd, smoothstep(0.5, 1.0, t));
+						vec3 col = mix(a, b, smoothstep(0.0, 1.0, t));
+						// Fade out towards the tail (uv.y -> 0)
+						float alpha = opacity * pow(t, 0.6) * intensity;
+						// Soft edge horizontally
+						float edge = 1.0 - smoothstep(0.0, 0.5, abs(vUv.x - 0.5) * 2.0);
+						alpha *= edge;
+						gl_FragColor = vec4(col, alpha);
+					}
+				`,
+				transparent: true,
+				depthWrite: false,
+				blending: THREE.AdditiveBlending,
+				side: THREE.DoubleSide
+			});
+		};
 
-		const glowGeom = new THREE.CylinderGeometry(0.15, 0.05, 8.5, 16);
-		glowGeom.translate(0, -8, 0);
-		const glowMat = new THREE.MeshBasicMaterial({
-			color: 0xffaa00,
-			transparent: true,
-			opacity: 0.5
-		});
-		const glow = new THREE.Mesh(glowGeom, glowMat);
-		this.mesh.add(glow);
+		const mainLen = 20;
+
+		this.mesh = new THREE.Group();
+
+		const createPlaneMesh = (width, len, opacity, intensity) => {
+			const geom = new THREE.PlaneGeometry(width, len, 1, 1);
+			geom.translate(0, -len / 2, 0);
+			const mat = createGradientMaterial(width, opacity, intensity);
+			return new THREE.Mesh(geom, mat);
+		};
+
+		for (let i = 0; i < 3; i++) {
+			const p = createPlaneMesh(0.6, mainLen, 1.0, 1.0);
+			p.rotateY((i * Math.PI * 2) / 3);
+			this.mesh.add(p);
+		}
+
+		for (let i = 0; i < 3; i++) {
+			const g = createPlaneMesh(1.6, mainLen * 1.1, 0.35, 0.65);
+			g.rotateY((i * Math.PI * 2) / 3 + Math.PI / 6);
+			this.mesh.add(g);
+		}
+
+		const tipGeom = new THREE.ConeGeometry(0.12, 0.8, 12);
+		tipGeom.translate(0, -0.4, 0);
+		const tipMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending, depthWrite: false });
+		const tip = new THREE.Mesh(tipGeom, tipMat);
+		this.mesh.add(tip);
 
 		this.mesh.matrixAutoUpdate = false;
 		this.scene.add(this.mesh);
