@@ -73,7 +73,7 @@ html {
 
 #hud-speed-box {
 	position: absolute;
-	top: 50%;
+	top: 49%;
 	left: 30%;
 	transform: translateY(-50%);
 	display: flex;
@@ -84,7 +84,7 @@ html {
 
 #hud-alt-box {
 	position: absolute;
-	top: 50%;
+	top: 49%;
 	right: 30%;
 	transform: translateY(-50%);
 	display: flex;
@@ -544,13 +544,12 @@ html {
 	left: 50%;
 	transform: translateX(-50%);
 	width: 600px;
-	background: rgba(0, 40, 0, 0.85);
+	background: rgba(0, 40, 0, 0.5);
 	border: 2px solid #0f0;
 	box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.2);
 	padding: 15px;
 	transition: opacity 0.5s ease;
 	z-index: 100;
-	clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 20px 100%, 0% calc(100% - 20px));
 }
 
 #dialogue-container.hidden {
@@ -574,12 +573,10 @@ html {
 }
 
 .commander-name {
-	font-size: 14px;
+	font-size: 16px;
 	color: #0f0;
-	margin-bottom: 5px;
-	letter-spacing: 2px;
+	margin-bottom: 10px;
 	font-weight: bold;
-	text-decoration: underline;
 }
 
 #dialogue-text {

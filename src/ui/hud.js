@@ -178,26 +178,24 @@ export class HUD {
 			`;
 
 			const crosshair = document.createElement('div');
-			crosshair.style.cssText = `
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				width: 40px;
-				height: 2px;
-				background: #0f0;
-				transform: translate(-50%, -50%);
-			`;
-			const innerCross = document.createElement('div');
-			innerCross.style.cssText = `
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				width: 2px;
-				height: 10px;
-				background: #0f0;
-				transform: translate(-50%, -50%);
-			`;
-			crosshair.appendChild(innerCross);
+			crosshair.style.cssText = 'position:absolute; top:50%; left:50%; width:120px; height:48px; transform:translate(-50%,-50%); pointer-events:none;';
+
+			const ring = document.createElement('div');
+			ring.style.cssText = 'position:absolute; left:50%; top:50%; width:12px; height:12px; transform:translate(-50%,-50%); border-radius:50%; border:2px solid #0f0; background:transparent;';
+
+			const leftLine = document.createElement('div');
+			leftLine.style.cssText = 'position:absolute; top:50%; left:calc(50% - 6px - 20px); width:20px; height:2px; transform:translateY(-50%); background:#0f0;';
+
+			const rightLine = document.createElement('div');
+			rightLine.style.cssText = 'position:absolute; top:50%; left:calc(50% + 6px); width:20px; height:2px; transform:translateY(-50%); background:#0f0;';
+
+			const topTick = document.createElement('div');
+			topTick.style.cssText = 'position:absolute; left:50%; top:calc(50% - 6px - 12px); width:2px; height:12px; transform:translateX(-50%); background:#0f0;';
+
+			crosshair.appendChild(leftLine);
+			crosshair.appendChild(rightLine);
+			crosshair.appendChild(ring);
+			crosshair.appendChild(topTick);
 			horizon.appendChild(crosshair);
 
 			const pitchLines = document.createElement('div');

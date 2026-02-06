@@ -29,7 +29,6 @@ let gameSettings = {
 	graphicsQuality: 'medium',
 	antialiasing: true,
 	fogEffects: true,
-	fov: 75,
 	mouseSensitivity: 0.2,
 	showHud: true,
 	showHorizonLines: false,
@@ -59,8 +58,6 @@ function updateSettingsUI() {
 	document.getElementById('graphicsQuality').value = gameSettings.graphicsQuality;
 	document.getElementById('antialiasing').checked = gameSettings.antialiasing;
 	document.getElementById('fogEffects').checked = gameSettings.fogEffects;
-	document.getElementById('fovSlider').value = gameSettings.fov;
-	document.getElementById('fovValue').textContent = gameSettings.fov;
 	document.getElementById('sensitivitySlider').value = gameSettings.mouseSensitivity;
 	document.getElementById('sensitivityValue').textContent = gameSettings.mouseSensitivity;
 	document.getElementById('showHud').checked = gameSettings.showHud;
@@ -70,10 +67,7 @@ function updateSettingsUI() {
 }
 
 function applySettings() {
-	if (camera) {
-		camera.fov = gameSettings.fov;
-		camera.updateProjectionMatrix();
-	}
+
 
 	if (controller) {
 		controller.setSensitivity(gameSettings.mouseSensitivity);
@@ -770,9 +764,7 @@ function setupModalListeners() {
 		document.getElementById('aboutBtnModal').classList.remove('hidden');
 	};
 
-	document.getElementById('fovSlider').oninput = (e) => {
-		document.getElementById('fovValue').textContent = e.target.value;
-	};
+
 
 	document.getElementById('sensitivitySlider').oninput = (e) => {
 		document.getElementById('sensitivityValue').textContent = e.target.value;
@@ -782,7 +774,6 @@ function setupModalListeners() {
 		gameSettings.graphicsQuality = document.getElementById('graphicsQuality').value;
 		gameSettings.antialiasing = document.getElementById('antialiasing').checked;
 		gameSettings.fogEffects = document.getElementById('fogEffects').checked;
-		gameSettings.fov = parseInt(document.getElementById('fovSlider').value);
 		gameSettings.mouseSensitivity = parseFloat(document.getElementById('sensitivitySlider').value);
 		gameSettings.showHud = document.getElementById('showHud').checked;
 		gameSettings.showHorizonLines = document.getElementById('showHorizonLines').checked;
