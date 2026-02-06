@@ -53,6 +53,7 @@ export class HUD {
 		this.currentShakeY = 0;
 
 		this.minimapRange = 1;
+		this.showHorizonLines = false;
 
 		this.npcMarkers = new Map();
 		this.npcContainer = document.createElement('div');
@@ -112,6 +113,14 @@ export class HUD {
 
 	setMinimapRange(range) {
 		this.minimapRange = range;
+	}
+
+	setShowHorizonLines(show) {
+		this.showHorizonLines = show;
+		const lines = document.getElementById('pitch-lines');
+		if (lines) {
+			lines.style.display = show ? 'block' : 'none';
+		}
 	}
 
 	showRegion(name) {
@@ -218,6 +227,8 @@ export class HUD {
 
 			horizon.appendChild(pitchLines);
 			ui.appendChild(horizon);
+
+			this.setShowHorizonLines(this.showHorizonLines);
 		}
 	}
 

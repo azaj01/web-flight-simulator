@@ -10,6 +10,7 @@ import { JetFlame } from './plane/jetFlame';
 import { WeaponSystem } from './systems/weaponSystem';
 import { soundManager } from './utils/soundManager';
 import { NPCSystem } from './systems/npcSystem';
+import { DialogueSystem } from './systems/dialogueSystem';
 import * as Cesium from 'cesium';
 import { particles } from './utils/particles';
 
@@ -31,8 +32,9 @@ let gameSettings = {
 	fov: 75,
 	mouseSensitivity: 0.2,
 	showHud: true,
+	showHorizonLines: false,
 	soundEnabled: true,
-	minimapRange: 1
+	minimapRange: 10
 };
 
 function loadSettings() {
@@ -62,6 +64,7 @@ function updateSettingsUI() {
 	document.getElementById('sensitivitySlider').value = gameSettings.mouseSensitivity;
 	document.getElementById('sensitivityValue').textContent = gameSettings.mouseSensitivity;
 	document.getElementById('showHud').checked = gameSettings.showHud;
+	document.getElementById('showHorizonLines').checked = gameSettings.showHorizonLines;
 	document.getElementById('soundEnabled').checked = gameSettings.soundEnabled;
 	document.getElementById('minimapRange').value = gameSettings.minimapRange.toString();
 }
@@ -78,6 +81,7 @@ function applySettings() {
 
 	if (hud) {
 		hud.setMinimapRange(gameSettings.minimapRange);
+		hud.setShowHorizonLines(gameSettings.showHorizonLines);
 	}
 
 	if (soundManager && soundManager.listener) {
@@ -151,6 +155,7 @@ let controller = new PlaneController();
 let hud = new HUD();
 let npcSystem;
 let weaponSystem;
+let dialogueSystem = new DialogueSystem();
 
 let fps = 0;
 let frameCount = 0;
@@ -250,7 +255,11 @@ async function initSounds() {
 		soundManager.loadSound('rwr-lock', '/assets/sounds/rwr-lock.mp3', false, 0.2),
 		soundManager.loadSound('wind', '/assets/sounds/wind.mp3', true, 0.25),
 		soundManager.loadSound('terrain-pull-up', '/assets/sounds/terrain-pull-up.mp3', false, 0.9),
-		soundManager.loadSound('warning', '/assets/sounds/warning.wav', false, 0.6)
+		soundManager.loadSound('warning', '/assets/sounds/warning.wav', false, 0.6),
+		soundManager.loadSound('glitch-1', '/assets/sounds/glitch-transition-1.mp3', false, 0.4),
+		soundManager.loadSound('glitch-2', '/assets/sounds/glitch-transition-2.mp3', false, 0.4),
+		soundManager.loadSound('glitch-3', '/assets/sounds/glitch-transition-3.mp3', false, 0.4),
+		soundManager.loadSound('glitch-4', '/assets/sounds/glitch-transition-4.mp3', false, 0.4)
 	]);
 
 	loadingStatus.audio = true;
@@ -662,6 +671,7 @@ function checkCrash() {
 
 	if (terrainHeight !== undefined && state.alt <= terrainHeight + 5) {
 		currentState = States.CRASHED;
+		if (dialogueSystem) dialogueSystem.stop();
 		uiContainer.classList.add('hidden');
 		const weaponsHud = document.getElementById('weapons-hud');
 		if (weaponsHud) weaponsHud.classList.add('hidden');
@@ -775,6 +785,7 @@ function setupModalListeners() {
 		gameSettings.fov = parseInt(document.getElementById('fovSlider').value);
 		gameSettings.mouseSensitivity = parseFloat(document.getElementById('sensitivitySlider').value);
 		gameSettings.showHud = document.getElementById('showHud').checked;
+		gameSettings.showHorizonLines = document.getElementById('showHorizonLines').checked;
 		gameSettings.soundEnabled = document.getElementById('soundEnabled').checked;
 		gameSettings.minimapRange = parseInt(document.getElementById('minimapRange').value);
 
@@ -811,21 +822,25 @@ document.getElementById('resumeBtn').onclick = () => {
 	const weaponsHud = document.getElementById('weapons-hud');
 	if (weaponsHud) weaponsHud.classList.remove('hidden');
 	currentState = States.FLYING;
+	if (dialogueSystem) dialogueSystem.resume();
 	resumeGameplaySounds();
 };
 
 document.getElementById('restartBtn').onclick = () => {
 	pauseMenu.classList.add('hidden');
+	if (dialogueSystem) dialogueSystem.stop();
 	enterSpawnPicking(true);
 };
 
 document.getElementById('quitBtn').onclick = () => {
+	if (dialogueSystem) dialogueSystem.stop();
 	setRenderOptimization(true);
 	location.reload();
 };
 
 document.getElementById('respawnBtn').onclick = () => {
 	crashMenu.classList.add('hidden');
+	if (dialogueSystem) dialogueSystem.stop();
 	enterSpawnPicking(true);
 };
 
@@ -1169,6 +1184,10 @@ document.getElementById('confirmSpawnBtn').onclick = () => {
 				currentState = States.FLYING;
 				soundManager.play('jet-engine', 1.0);
 				if (vignette) vignette.style.opacity = '0';
+
+				if (dialogueSystem) {
+					dialogueSystem.start();
+				}
 			}
 		});
 	}, 500);
@@ -1187,6 +1206,7 @@ window.addEventListener('keydown', (e) => {
 	if (key === 'escape' || key === 'p') {
 		if (currentState === States.FLYING) {
 			currentState = States.PAUSED;
+			if (dialogueSystem) dialogueSystem.pause();
 			uiContainer.classList.add('hidden');
 			const weaponsHud = document.getElementById('weapons-hud');
 			if (weaponsHud) weaponsHud.classList.add('hidden');
@@ -1195,6 +1215,7 @@ window.addEventListener('keydown', (e) => {
 			hud.update(state, []);
 		} else if (currentState === States.PAUSED) {
 			currentState = States.FLYING;
+			if (dialogueSystem) dialogueSystem.resume();
 			pauseMenu.classList.add('hidden');
 			uiContainer.classList.remove('hidden');
 			const weaponsHud = document.getElementById('weapons-hud');
@@ -1209,6 +1230,7 @@ window.addEventListener('keydown', (e) => {
 document.addEventListener('visibilitychange', () => {
 	if (document.hidden && currentState === States.FLYING) {
 		currentState = States.PAUSED;
+		if (dialogueSystem) dialogueSystem.pause();
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
 		pauseGameplaySounds();
@@ -1219,6 +1241,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('blur', () => {
 	if (currentState === States.FLYING) {
 		currentState = States.PAUSED;
+		if (dialogueSystem) dialogueSystem.pause();
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
 		pauseGameplaySounds();
