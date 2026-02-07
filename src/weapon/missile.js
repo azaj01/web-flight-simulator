@@ -385,7 +385,7 @@ export class Missile {
 		try {
 			particles.spawnExplosion(this.lon, this.lat, this.alt, { count: 80, smokeCount: 18, big: true });
 			particles.spawnWreckage(this.lon, this.lat, this.alt, this.heading, this.pitch, { count: 48 });
-			soundManager.play('explode');
+				soundManager.play('explode-random');
 		} catch (e) { }
 		this.destroy();
 	}

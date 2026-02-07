@@ -236,6 +236,11 @@ async function initSounds() {
 		soundManager.loadSound('boost', '/assets/sounds/boost.wav', false, 0.35),
 		soundManager.loadSound('throttle', '/assets/sounds/throttle.wav', false, 0.4),
 		soundManager.loadSound('explode', '/assets/sounds/explode.wav', false, 0.5),
+		soundManager.loadSound('explode-1', '/assets/sounds/explosion-1.mp3', false, 0.8),
+		soundManager.loadSound('explode-2', '/assets/sounds/explosion-2.mp3', false, 0.8),
+		soundManager.loadSound('explode-3', '/assets/sounds/explosion-3.mp3', false, 0.8),
+		soundManager.loadSound('ambient-crash', '/assets/sounds/ambient.mp3', true, 0.5),
+		soundManager.loadSound('overheat-warning', '/assets/sounds/overheat-warning.mp3', false, 0.8),
 		soundManager.loadSound('jet-engine', '/assets/sounds/jet-engine.mp3', true, 0.5),
 		soundManager.loadSound('spawn', '/assets/sounds/spawn.wav', false, 0.5),
 		soundManager.loadSound('roll', '/assets/sounds/roll.wav', true, 0.75),
@@ -674,7 +679,10 @@ function checkCrash() {
 		hud.update(state, []);
 
 		stopAllFlyingSounds(0.1);
-		setTimeout(() => soundManager.play('explode'), 50);
+		setTimeout(() => {
+			soundManager.play('explode');
+			soundManager.play('ambient-crash');
+		}, 50);
 	}
 }
 

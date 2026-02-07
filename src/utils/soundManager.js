@@ -7,6 +7,7 @@ class SoundManager {
 		this.loader = new THREE.AudioLoader();
 		this._voicePool = [];
 		this._activeOneShots = new Set();
+		this._lastRandom = {};
 	}
 
 	init(camera) {
@@ -39,6 +40,21 @@ class SoundManager {
 	}
 
 	play(name, fadeInDuration = 0) {
+		const originalName = name;
+
+		if (originalName === 'explode-random') {
+			const variants = Array.from(this.sounds.keys()).filter(k => k.startsWith('explode-'));
+			if (variants.length > 0) {
+				let last = this._lastRandom[originalName] ?? -1;
+				let idx = Math.floor(Math.random() * variants.length);
+				if (variants.length > 1) {
+					while (idx === last) idx = Math.floor(Math.random() * variants.length);
+				}
+				this._lastRandom[originalName] = idx;
+				name = variants[idx];
+			}
+		}
+
 		const sound = this.sounds.get(name);
 		if (!sound) return;
 
@@ -53,7 +69,7 @@ class SoundManager {
 			voice.setVolume(targetVolume);
 			voice.play();
 
-			voice._parentName = name;
+			voice._parentName = originalName || name;
 			this._activeOneShots.add(voice);
 
 			voice.source.onended = () => {

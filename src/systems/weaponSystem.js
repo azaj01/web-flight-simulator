@@ -138,6 +138,7 @@ export class WeaponSystem {
 			this.gunHeat += 0.02;
 			if (this.gunHeat >= 1.0) {
 				this.isGunOverheated = true;
+				try { soundManager.play('overheat-warning'); } catch (e) { }
 			}
 
 			const gunOffset = new THREE.Vector3(0, 0, 0);
