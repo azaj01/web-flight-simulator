@@ -246,6 +246,7 @@ async function initSounds() {
 		soundManager.loadSound('roll', '/assets/sounds/roll.wav', true, 0.75),
 		soundManager.loadSound('pitch', '/assets/sounds/pitch.mp3', true, 0.75),
 		soundManager.loadSound('button-click', '/assets/sounds/button-click.mp3', false, 1.0),
+		soundManager.loadSound('weapon-switch', '/assets/sounds/weapon-switch.mp3', false, 1.0),
 		soundManager.loadSound('button-hover', '/assets/sounds/button-hover.mp3', false, 0.25),
 		soundManager.loadSound('zoom-in', '/assets/sounds/zoom-in.mp3', false, 0.5),
 		soundManager.loadSound('missile-fire', '/assets/sounds/missile-firing-1.mp3', false, 0.75),

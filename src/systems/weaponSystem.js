@@ -69,12 +69,14 @@ export class WeaponSystem {
 
 	toggleWeapon() {
 		this.selectedWeaponIndex = (this.selectedWeaponIndex + 1) % this.weapons.length;
+		try { soundManager.play('weapon-switch'); } catch (e) { }
 	}
 
 	selectWeapon(index) {
 		if (index >= 0 && index < this.weapons.length) {
 			this.selectedWeaponIndex = index;
 		}
+		try { soundManager.play('weapon-switch'); } catch (e) { }
 	}
 
 	calculateWeaponPos(offset) {
