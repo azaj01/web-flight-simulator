@@ -63,4 +63,15 @@ A web-based flight simulator built with Three.js and CesiumJS, featuring real-wo
 
 ## 🧾 License
 
-This project is licensed under the ISC License.
+## Dual Licensing
+
+- **Non-Commercial:** The project is available for non-commercial use under
+   the terms in `LICENSE` (see the repository root). You may use, modify, and
+   redistribute the project for non-commercial purposes provided you retain the
+   copyright notice and this license.
+- **Commercial:** Commercial use requires a separate commercial license. See
+   `LICENSE` for details and contact instructions, or email
+   dimartarmizi@email.com to request terms.
+
+If you are unsure whether your use is commercial, please get in touch to
+confirm—it's better to ask than to assume.
