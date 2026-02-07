@@ -1,36 +1,80 @@
-# Web Flight Simulator
+<p align="center">
+  <img src="public/assets/images/logo.webp" alt="Web Flight Simulator Logo" width="200"/>
+</p>
 
-A web-based flight simulator built with Three.js and CesiumJS, featuring real-world 3D terrain and interactive flight controls.
+# ✈️ Web Flight Simulator
 
-![Simulator Screenshot](screenshot.jpg)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML) [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS) [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) [![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://threejs.org/) [![CesiumJS](https://img.shields.io/badge/CesiumJS-00AAEE?style=for-the-badge&logo=cesium)](https://cesium.com/) [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 
-## 🚀 Features
+A high-performance, web-based flight simulator that bridges the gap between **Three.js** high-fidelity 3D modeling and **CesiumJS** global-scale geospatial data. Experience the thrill of piloting an F-15 fighter jet across a real-time, 3D replica of the Earth.
 
-- **Real-World Global Terrain**: Powered by CesiumJS, explore the entire world with high-resolution 3D topography.
-- **Flight Controls**: Intuitive handling of pitch, roll, yaw, and speed for a smooth flying experience.
-- **Dynamic HUD**: Real-time Heads-Up Display showing speed, altitude, heading, and pitch ladder.
-- **Advanced Visuals**: Integrated Three.js for aircraft models and lighting effects.
-- **Interactive Minimap**: GPS-style satellite minimap to track your position in real-time.
-- **Multiple Game States**: Smooth transitions between main menu, spawn selection, and flight mode.
+![Simulator Screenshot](public/assets/images/screenshot.jpg)
 
-## 🛠️ Technologies Used
+## 🚀 Key Features
 
-- **[Three.js](https://threejs.org/)**: 3D Engine for aircraft rendering and scene management.
-- **[CesiumJS](https://cesium.com/platform/cesiumjs/)**: Geospatial platform for real-world 3D terrain and satellite imagery.
-- **[Vite](https://vitejs.dev/)**: Next-generation frontend tooling for fast development.
-- **JavaScript (ES6+)**: Core logic and simulation.
+### 🌍 Global Real-World Terrain
+- **Digital Twin Earth**: Powered by CesiumJS, fly over high-resolution 3D topography and satellite imagery anywhere on the planet.
+- **Dynamic Level-of-Detail**: Seamlessly transition from high-altitude stratospheric flight to low-level canyon runs.
 
-## ⌨️ Controls
+### 🦅 Advanced Flight Combat & AI
+- **F-15 Eaglehawk**: Optimized 3D model featuring dynamic afterburners and jet flame effects.
+- **Weapon System**:
+  - **M61A1 Vulcan**: High-speed internal cannon for close-range dogfights.
+  - **AIM-9 Sidewinder**: Heat-seeking missiles with active target locking.
+  - **MJU-7A Flares**: Advanced countermeasure system to evade incoming threats.
+- **NPC Entities**: Encounter other aircraft in the world. AI flight behaviors and randomized callsigns are currently under development.
 
-| Action | Key |
-| :--- | :--- |
-| **Pitch Down** | `Arrow Up` |
-| **Pitch Up** | `Arrow Down` |
-| **Roll Left/Right** | `Arrow Left` / `Arrow Right` |
-| **Yaw (Rudder)** | `A` / `D` |
-| **Increase Throttle** | `W` or `Shift` |
-| **Decrease Throttle** | `S` or `Ctrl` |
-| **Boost** | `Space` |
+### 🖥️ Tactical HUD & UI
+- **Professional Avionics**: A fully integrated Heads-Up Display (HUD) featuring:
+  - Pitch Ladder and Heading Tape.
+  - Real-time Altitude (ASL) and Airspeed (IAS) indicators.
+  - Weapon Status and Ammo tracking.
+  - Interactive Minimap with satellite navigation.
+
+## ⚙️ Configuration & Options
+
+The simulator allows customization of the flight experience through the in-game settings menu:
+
+- **Graphics Quality**: Adjustable settings for performance tuning (rendering resolution and detail).
+- **Antialiasing**: Enable/disable smoothing for jagged edges on the 3D model.
+- **Fog Effects**: Toggle atmospheric fog for better immersion and depth perception.
+- **Mouse Sensitivity**: Fine-tune the "Look Around" sensitivity for the tactical camera.
+- **Sound Toggle**: Global master switch for all game audio.
+- **Persistent Settings**: All choices are automatically saved to `localStorage` for future sessions.
+
+## 🔊 Immersive Audio System
+
+A complex sound environment is built using the `Three.js AudioListener` system:
+
+- **Dynamic Engine Noises**: Realistic jet engine loops that react to throttle changes.
+- **Wind & Aerodynamics**: Procedural wind sounds based on flight speed.
+- **Tactical Warnings (GPWS/RWR)**:
+  - **"PULL UP"**: Ground Proximity Warning System for terrain avoidance.
+  - **Radar Warnings**: Distinct tones for target search (TWS) and active missile locks.
+- **Combat SFX**: High-fidelity sounds for M61 Vulcan firing, missile launches, and randomized explosion variants.
+- **Atmospheric UI**: Subtle button hovers, clicks, and screen glitch transitions for a modern tactical interface.
+
+## ⌨️ Controls & Handling
+
+| Category | Action | Key |
+| :--- | :--- | :--- |
+| **Flight** | Pitch Up / Down | `Arrow Down` / `Arrow Up` |
+| | Roll Left / Right | `Arrow Left` / `Arrow Right` |
+| | Yaw (Rudder) | `A` / `D` |
+| | Increase / Decrease Throttle | `W` / `S` |
+| | Afterburner (Boost) | `Space` |
+| **Combat** | Fire Active Weapon | `Enter` or `F` |
+| | Deploy Flares | `V` |
+| | Select Weapon | `1` / `2` |
+| | Cycle Weapon | `Q` |
+| **View** | Look Around | `Mouse Left Drag` |
+
+## 🛠️ Technical Overview
+
+The project utilizes a **Hybrid Rendering Architecture**:
+- **CesiumJS** handles the massive planetary scales, WGS84 coordinates, and terrain streaming.
+- **Three.js** manages the local coordinate system for the aircraft model, particle effects (jet flames, explosions), and lighting.
+- **Vite** provides an ultra-fast HMR development environment and optimized production builds.
 
 ## 📦 Installation & Setup
 
@@ -55,23 +99,17 @@ A web-based flight simulator built with Three.js and CesiumJS, featuring real-wo
    npm run build
    ```
 
-## 🏷️ Credits & Attributions
+## 📜 License
 
-- **3D Model**: ["Low poly F-15"](https://sketchfab.com/3d-models/low-poly-f-15-0c1cfa22d7094556914fcdfba75bef5d) by [SIpriv](https://sketchfab.com/sipriv), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Engine**: [Three.js](https://threejs.org/) community and contributors.
-- **Terrain & Map**: [CesiumJS](https://cesium.com/) by Cesium GS, Inc.
+This project is licensed under a **Dual-Licensing** model:
 
-## 🧾 License
+- **Non-Commercial:** Free to use for personal, educational, and non-profit projects.
+- **Commercial:** Requires a separate commercial license for any for-profit use.
 
-## Dual Licensing
+Please refer to the [LICENSE](LICENSE) file for full legal terms or contact [dimartarmizi@email.com](mailto:dimartarmizi@email.com) for inquiries.
 
-- **Non-Commercial:** The project is available for non-commercial use under
-   the terms in `LICENSE` (see the repository root). You may use, modify, and
-   redistribute the project for non-commercial purposes provided you retain the
-   copyright notice and this license.
-- **Commercial:** Commercial use requires a separate commercial license. See
-   `LICENSE` for details and contact instructions, or email
-   dimartarmizi@email.com to request terms.
+## 🏷️ Credits
 
-If you are unsure whether your use is commercial, please get in touch to
-confirm—it's better to ask than to assume.
+- **Developer**: Dimar Tarmizi
+- **3D Model**: ["Low poly F-15"](https://sketchfab.com/3d-models/low-poly-f-15-0c1cfa22d7094556914fcdfba75bef5d) by [SIpriv](https://sketchfab.com/sipriv).
+- **Engine**: [Three.js](https://threejs.org/) & [CesiumJS](https://cesium.com/).
