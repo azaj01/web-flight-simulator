@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as Cesium from 'cesium';
 import { movePosition } from '../utils/math';
 import { particles } from '../utils/particles';
+import { soundManager } from '../utils/soundManager';
 
 export class Bullet {
 	constructor(scene, viewer, startPos, heading, pitch, speed) {
@@ -183,6 +184,7 @@ export class Bullet {
 		try {
 			particles.spawnExplosion(this.lon, this.lat, this.alt, { count: 36, smokeCount: 8, big: true });
 			particles.spawnWreckage(this.lon, this.lat, this.alt, this.heading, this.pitch, { count: 18 });
+			try { soundManager.play('explode-random'); } catch (e) { }
 		} catch (e) { }
 		this.destroy();
 	}

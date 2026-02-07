@@ -17,7 +17,7 @@ export class WeaponSystem {
 			{ id: 'missile', name: 'AIM-9 SIDEWINDER', ammo: 50, maxAmmo: 50, fireRate: 1.0, lastFire: 0, type: 'AIM-9' }
 		];
 
-		this.flareWeapon = { id: 'flare', name: 'FLARES', ammo: 30, maxAmmo: 30, fireRate: 0.2, lastFire: 0 };
+		this.flareWeapon = { id: 'flare', name: 'MJU-7A', ammo: 30, maxAmmo: 30, fireRate: 0.2, lastFire: 0 };
 
 		this.selectedWeaponIndex = 0;
 		this.projectiles = [];
@@ -37,6 +37,13 @@ export class WeaponSystem {
 		this.lastFlarePulse = 0;
 
 		this.lastMissileSide = false;
+
+		this.emptyWarningTimers = {
+			gun: 0,
+			missile: 0,
+			flare: 0
+		};
+		this.lastEmptyWarningSoundTime = 0;
 	}
 
 	resetAmmo() {
@@ -48,6 +55,12 @@ export class WeaponSystem {
 		}
 		this.gunHeat = 0;
 		this.isGunOverheated = false;
+
+		this.emptyWarningTimers = {
+			gun: 0,
+			missile: 0,
+			flare: 0
+		};
 	}
 
 	getCurrentWeapon() {
@@ -117,7 +130,14 @@ export class WeaponSystem {
 
 		const now = performance.now() * 0.001;
 
-		if (weapon.ammo <= 0) return;
+		if (weapon.ammo <= 0) {
+			if (now - this.lastEmptyWarningSoundTime > 2.0) {
+				this.emptyWarningTimers[weapon.id] = 1.0;
+				this.lastEmptyWarningSoundTime = now;
+				try { soundManager.play('weapon-warning'); } catch (e) { }
+			}
+			return;
+		}
 		if (weapon.id === 'gun' && this.isGunOverheated) return;
 		if (now - weapon.lastFire < weapon.fireRate) return;
 
@@ -138,7 +158,7 @@ export class WeaponSystem {
 			this.gunHeat += 0.02;
 			if (this.gunHeat >= 1.0) {
 				this.isGunOverheated = true;
-				try { soundManager.play('overheat-warning'); } catch (e) { }
+				try { soundManager.play('weapon-warning'); } catch (e) { }
 			}
 
 			const gunOffset = new THREE.Vector3(0, 0, 0);
@@ -180,7 +200,15 @@ export class WeaponSystem {
 		const flareWeapon = this.flareWeapon;
 		const now = performance.now() * 0.001;
 
-		if (!flareWeapon || flareWeapon.ammo <= 0 || now - flareWeapon.lastFire < 1.0) return;
+		if (!flareWeapon || flareWeapon.ammo <= 0) {
+			if (now - this.lastEmptyWarningSoundTime > 2.0) {
+				this.emptyWarningTimers['flare'] = 1.0;
+				this.lastEmptyWarningSoundTime = now;
+				try { soundManager.play('weapon-warning'); } catch (e) { }
+			}
+			return;
+		}
+		if (now - flareWeapon.lastFire < 1.0) return;
 
 		flareWeapon.ammo--;
 		flareWeapon.lastFire = now;
@@ -295,6 +323,13 @@ export class WeaponSystem {
 			}
 			if (this.isGunOverheated && this.gunHeat < 0.3) {
 				this.isGunOverheated = false;
+			}
+		}
+
+		for (const key in this.emptyWarningTimers) {
+			if (this.emptyWarningTimers[key] > 0) {
+				this.emptyWarningTimers[key] -= dt;
+				if (this.emptyWarningTimers[key] < 0) this.emptyWarningTimers[key] = 0;
 			}
 		}
 

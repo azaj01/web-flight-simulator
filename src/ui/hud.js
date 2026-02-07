@@ -772,7 +772,10 @@ export class HUD {
 			const displayWeapon = weapon || (id === 'flare' ? weaponSystem.flareWeapon : weaponSystem.weapons.find(w => w.id === id));
 
 			if (elem) {
-				const isActive = (currentWeapon && currentWeapon.id === id) || (id === 'flare' && (now - weaponSystem.flareWeapon.lastFire < 1.0));
+				const isEmptyWarning = weaponSystem.emptyWarningTimers && weaponSystem.emptyWarningTimers[id] > 0;
+				const isActive = (currentWeapon && currentWeapon.id === id) ||
+					(id === 'flare' && (now - weaponSystem.flareWeapon.lastFire < 1.0)) ||
+					isEmptyWarning;
 				const isGunOverheated = id === 'gun' && weaponSystem.isGunOverheated;
 
 				if (isActive) {
@@ -781,7 +784,7 @@ export class HUD {
 					elem.classList.remove('active');
 				}
 
-				if (isGunOverheated) {
+				if (isGunOverheated || isEmptyWarning) {
 					elem.classList.add('overheated');
 				} else {
 					elem.classList.remove('overheated');
