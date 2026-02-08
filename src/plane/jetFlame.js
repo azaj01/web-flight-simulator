@@ -28,19 +28,27 @@ export class JetFlame {
             void main() {
                 float v = 1.0 - vUv.y;
                 
-                float activeLen = isBoosting > 0.5 ? 1.3 : (0.3 + throttle * 0.7);
-                float intensity = isBoosting > 0.5 ? 2.0 : (0.6 + throttle * 0.9);
+                float effThrottle = max(throttle, isBoosting);
 
-                if (v > activeLen) discard;
+                float nonBoostLen = 0.3 + throttle * 0.7;
+                float boostLen = 1.3;
+                float activeLen = mix(nonBoostLen, boostLen, isBoosting);
+
+                float nonBoostIntensity = 0.6 + throttle * 0.9;
+                float boostIntensity = 2.0;
+                float intensity = mix(nonBoostIntensity, boostIntensity, isBoosting);
+
+                if (v > activeLen + 0.1) discard;
 
                 vec3 coreColor = vec3(1.0, 1.0, 0.95); 
-                vec3 midColor = vec3(1.0, 0.4, 0.1);  
-                vec3 outerColor = vec3(0.15, 0.35, 1.0); 
                 
-                if (isBoosting > 0.5) {
-                    midColor = vec3(1.0, 0.5, 0.2); 
-                    outerColor = vec3(0.3, 0.3, 1.0);
-                }
+                vec3 normalMid = vec3(1.0, 0.4, 0.1);
+                vec3 normalOuter = vec3(0.15, 0.35, 1.0);
+                vec3 boostMid = vec3(1.0, 0.5, 0.2);
+                vec3 boostOuter = vec3(0.3, 0.3, 1.0);
+
+                vec3 midColor = mix(normalMid, boostMid, isBoosting);
+                vec3 outerColor = mix(normalOuter, boostOuter, isBoosting);
 
                 float radial = length(vPosition.xy);
                 float glow = exp(-radial * 10.0);
@@ -48,7 +56,7 @@ export class JetFlame {
                 
                 float shockFreq = 20.0;
                 float shock = pow(max(0.0, sin(v * shockFreq - time * 50.0)), 5.0);
-                shock *= (0.2 + throttle * 0.8 + isBoosting * 0.4);
+                shock *= (0.2 + effThrottle * 0.8 + isBoosting * 0.4);
                 
                 float diamondPos = sin(v * 26.0 - time * 40.0);
                 float diamondMesh = pow(max(0.0, diamondPos), 9.0) * (1.0 - v/activeLen);
@@ -60,8 +68,11 @@ export class JetFlame {
                 
                 finalColor += coreColor * shock * glow;
 
-                float fade = pow(1.0 - v / activeLen, 1.4);
-                float alpha = fade * intensity * (glow * 2.2 + core);
+                float fade = pow(max(0.0, 1.0 - v / activeLen), 1.4);
+                
+                float edgeFade = smoothstep(activeLen, activeLen * 0.8, v);
+                
+                float alpha = fade * intensity * (glow * 2.2 + core) * edgeFade;
                 alpha = clamp(alpha * flicker, 0.0, 1.0);
 
                 gl_FragColor = vec4(finalColor * intensity, alpha);
@@ -73,6 +84,8 @@ export class JetFlame {
             throttle: { value: 0 },
             isBoosting: { value: 0 }
         };
+
+        this.boostFactor = 0;
 
         const geometry = new THREE.CylinderGeometry(0.1, 0.2, 2, 16, 32, true);
         geometry.translate(0, -1, 0);
@@ -94,19 +107,27 @@ export class JetFlame {
         this.light = new THREE.PointLight(0xffaa44, 1, 5);
         this.light.position.set(0, 0, 0);
         this.group.add(this.light);
+
+        this.cNormal = new THREE.Color(0xff7722);
+        this.cBoost = new THREE.Color(0x9999ff);
     }
 
     update(throttle, isBoosting, time, dt) {
+        const targetBoost = isBoosting ? 1.0 : 0.0;
+        const boostSpeed = 5.0; 
+        this.boostFactor += (targetBoost - this.boostFactor) * Math.min(dt * boostSpeed, 1.0);
+
         this.uniforms.throttle.value = throttle;
-        this.uniforms.isBoosting.value = isBoosting ? 1.0 : 0.0;
+        this.uniforms.isBoosting.value = this.boostFactor;
         this.uniforms.time.value = time;
 
-        const s = isBoosting ? 2.2 : (0.6 + throttle * 1.2);
+        const s = (1.0 - this.boostFactor) * (0.6 + throttle * 1.2) + this.boostFactor * 2.2;
         
-        const widthScale = 1.1 + throttle * 0.4;
+        const effectiveThrottle = Math.max(throttle, this.boostFactor);
+        const widthScale = 1.1 + effectiveThrottle * 0.4;
         this.flame.scale.set(widthScale, widthScale, s);
         
-        this.light.intensity = isBoosting ? 7.5 : (1.0 + throttle * 2.5);
-        this.light.color.setHex(isBoosting ? 0x9999ff : 0xff7722);
+        this.light.intensity = (1.0 - this.boostFactor) * (1.0 + throttle * 2.5) + this.boostFactor * 7.5;
+        this.light.color.copy(this.cNormal).lerp(this.cBoost, this.boostFactor);
     }
 }
