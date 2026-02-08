@@ -42,15 +42,19 @@ class SoundManager {
 	play(name, fadeInDuration = 0) {
 		const originalName = name;
 
-		if (originalName === 'explode-random') {
-			const variants = Array.from(this.sounds.keys()).filter(k => k.startsWith('explode-'));
+		if (name.endsWith('-random')) {
+			const prefix = name.replace('-random', '-');
+			const variants = Array.from(this.sounds.keys()).filter(k => k.startsWith(prefix));
+
 			if (variants.length > 0) {
-				let last = this._lastRandom[originalName] ?? -1;
+				const lastIdx = this._lastRandom[name] ?? -1;
 				let idx = Math.floor(Math.random() * variants.length);
-				if (variants.length > 1) {
-					while (idx === last) idx = Math.floor(Math.random() * variants.length);
+
+				if (variants.length > 1 && idx === lastIdx) {
+					idx = (idx + 1) % variants.length;
 				}
-				this._lastRandom[originalName] = idx;
+
+				this._lastRandom[name] = idx;
 				name = variants[idx];
 			}
 		}
