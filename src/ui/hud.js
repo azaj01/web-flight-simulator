@@ -205,18 +205,16 @@ export class HUD {
 
 			this.glitchInterval = setInterval(() => {
 				if (this.killTextElem) {
-					// Typing effect with a glitchy "edge" character and a cursor
 					const currentPos = Math.floor(iteration);
-					
+
 					const processedText = targetText.split("")
 						.map((char, index) => {
-							if (index < currentPos) return targetText[index]; // Correct character
-							if (index === currentPos) return chars[Math.floor(Math.random() * chars.length)]; // Glitch char
-							return ""; // Hidden
+							if (index < currentPos) return targetText[index];
+							if (index === currentPos) return chars[Math.floor(Math.random() * chars.length)];
+							return "";
 						})
 						.join("");
-					
-					// Add a blinking cursor or indicator while typing
+
 					const cursor = currentPos < targetText.length ? (Math.random() > 0.5 ? "_" : " ") : "";
 					this.killTextElem.innerText = processedText + cursor;
 				}
@@ -231,16 +229,13 @@ export class HUD {
 
 			if (this.killScoreElem) this.killScoreElem.innerText = `+${scoreGain}`;
 
-			// Reset animation
 			this.killNotifContainer.style.animation = 'none';
-			this.killNotifContainer.offsetHeight; // trigger reflow
+			this.killNotifContainer.offsetHeight;
 			this.killNotifContainer.style.animation = null;
 
 			this.killTimeout = setTimeout(() => {
-				// Start exit animation
 				this.killNotifContainer.classList.add('kill-notification-exit');
-				
-				// Hide after animation finishes
+
 				setTimeout(() => {
 					this.killNotifContainer.classList.add('hidden');
 					this.killNotifContainer.classList.remove('kill-notification-exit');
@@ -561,7 +556,7 @@ export class HUD {
 		}
 
 		ctx.fillStyle = '#0f0';
-		ctx.font = 'bold 18px AceCombat';
+		ctx.font = `bold 18px ${getComputedStyle(document.body).fontFamily}`;
 		ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
 		ctx.shadowBlur = 4;
 		ctx.textAlign = 'center';

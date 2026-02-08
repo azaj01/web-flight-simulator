@@ -186,7 +186,7 @@ export class Bullet {
 		try {
 			particles.spawnExplosion(this.lon, this.lat, this.alt, { count: 36, smokeCount: 8, big: true });
 			particles.spawnWreckage(this.lon, this.lat, this.alt, this.heading, this.pitch, { count: 18 });
-			try { soundManager.play('explode-random'); } catch (e) { }
+			try { soundManager.play('explosion-random'); } catch (e) { }
 		} catch (e) { }
 		this.destroy();
 	}

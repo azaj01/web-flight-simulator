@@ -382,7 +382,7 @@ export class Missile {
 		try {
 			particles.spawnExplosion(this.lon, this.lat, this.alt, { count: 80, smokeCount: 18, big: true });
 			particles.spawnWreckage(this.lon, this.lat, this.alt, this.heading, this.pitch, { count: 48 });
-			soundManager.play('explode-random');
+			soundManager.play('explosion-random');
 		} catch (e) { }
 		this.destroy();
 	}
@@ -394,7 +394,7 @@ export class Missile {
 			try {
 				particles.spawnExplosion(this.lon, this.lat, this.alt, { count: 80, smokeCount: 18, big: true });
 				particles.spawnWreckage(this.lon, this.lat, this.alt, this.heading, this.pitch, { count: 48 });
-				soundManager.play('explode');
+				soundManager.play('explosion-random');
 			} catch (e) { }
 			this.destroy();
 		}

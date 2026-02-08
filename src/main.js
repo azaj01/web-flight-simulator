@@ -249,9 +249,9 @@ async function initSounds() {
 		soundManager.loadSound('boost', '/assets/sounds/boost.mp3', false, 0.35),
 		soundManager.loadSound('throttle', '/assets/sounds/throttle.mp3', false, 0.4),
 		soundManager.loadSound('explode', '/assets/sounds/explode.mp3', false, 0.75),
-		soundManager.loadSound('explode-1', '/assets/sounds/explosion-1.mp3', false, 0.8),
-		soundManager.loadSound('explode-2', '/assets/sounds/explosion-2.mp3', false, 0.8),
-		soundManager.loadSound('explode-3', '/assets/sounds/explosion-3.mp3', false, 0.8),
+		soundManager.loadSound('explosion-1', '/assets/sounds/explosion-1.mp3', false, 0.8),
+		soundManager.loadSound('explosion-2', '/assets/sounds/explosion-2.mp3', false, 0.8),
+		soundManager.loadSound('explosion-3', '/assets/sounds/explosion-3.mp3', false, 0.8),
 		soundManager.loadSound('ambient-crash', '/assets/sounds/ambient.mp3', true, 0.5),
 		soundManager.loadSound('weapon-warning', '/assets/sounds/weapon-warning-1.mp3', false, 1.0),
 		soundManager.loadSound('jet-engine', '/assets/sounds/jet-engine.mp3', true, 0.5),
@@ -998,7 +998,7 @@ function setupSpawnPicker() {
 				},
 				label: {
 					text: "Target Spawn Location",
-					font: "14pt AceCombat",
+					font: `14pt ${getComputedStyle(document.body).fontFamily}`,
 					style: Cesium.LabelStyle.FILL_AND_OUTLINE,
 					outlineWidth: 2,
 					verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
@@ -1099,7 +1099,7 @@ function setupLocationSearch() {
 								},
 								label: {
 									text: item.display_name.split(',')[0],
-									font: "14pt AceCombat",
+									font: `14pt ${getComputedStyle(document.body).fontFamily}`,
 									style: Cesium.LabelStyle.FILL_AND_OUTLINE,
 									outlineWidth: 2,
 									verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
@@ -1264,6 +1264,10 @@ window.addEventListener('keydown', (e) => {
 		} else if (currentState === States.PICK_SPAWN && key === 'escape') {
 			exitSpawnPicking();
 		}
+	}
+
+	if (key === 'z' && currentState === States.FLYING) {
+		if (dialogueSystem) dialogueSystem.skip();
 	}
 });
 

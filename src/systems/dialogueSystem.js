@@ -128,6 +128,32 @@ export class DialogueSystem {
 		soundManager.play(this.glitchSounds[index]);
 	}
 
+	skip() {
+		if (!this.isActive || this.isPaused) return;
+
+		const text = this.dialogues[this.currentIndex];
+		if (!text) return;
+
+		if (!this.isWaitingForNext) {
+			if (this.typewriterTimeout) clearTimeout(this.typewriterTimeout);
+			this.textElem.textContent = text;
+			this.currentCharIndex = text.length;
+			this.isWaitingForNext = true;
+
+			if (this.nextTimeout) clearTimeout(this.nextTimeout);
+			this.nextTimeout = setTimeout(() => {
+				this.currentIndex++;
+				this.currentCharIndex = 0;
+				this.showNext();
+			}, 4000);
+		} else {
+			if (this.nextTimeout) clearTimeout(this.nextTimeout);
+			this.currentIndex++;
+			this.currentCharIndex = 0;
+			this.showNext();
+		}
+	}
+
 	finish() {
 		this.isActive = false;
 		this.container.classList.add('hidden');
