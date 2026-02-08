@@ -1344,3 +1344,7 @@ window.addEventListener('resize', () => {
 	const viewer = getViewer();
 	if (viewer) viewer.resize();
 });
+
+window.addEventListener('contextmenu', (e) => {
+	e.preventDefault();
+}, false);
