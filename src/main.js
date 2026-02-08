@@ -130,6 +130,18 @@ let state = {
 	weaponSystem: null
 };
 
+async function initUserLocation() {
+	try {
+		const data = await (await fetch('https://ipapi.co/json/')).json();
+		if (data.latitude && data.longitude) {
+			state.lat = data.latitude;
+			state.lon = data.longitude;
+		}
+	} catch (e) {}
+}
+
+initUserLocation();
+
 let currentRegionName = null;
 let lastGeocodeTime = 0;
 let lastGeocodePos = { lon: 0, lat: 0 };
