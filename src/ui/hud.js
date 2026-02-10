@@ -854,9 +854,9 @@ export class HUD {
 					elem.classList.remove('overheated');
 				}
 
-				if (isActive && id === 'missile') {
+				if (isActive && id === 'missile' && displayWeapon) {
 					const nameElem = elem.querySelector('.weapon-name');
-					if (nameElem) nameElem.innerText = currentWeapon.name;
+					if (nameElem) nameElem.innerText = displayWeapon.name;
 				}
 			}
 
