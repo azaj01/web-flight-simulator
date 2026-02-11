@@ -472,11 +472,11 @@ export class HUD {
 			this.scoreElem.innerText = (state.score || 0).toString().padStart(6, '0');
 		}
 
-		const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-		const h = Math.floor(elapsed / 3600);
-		const m = Math.floor((elapsed % 3600) / 60);
-		const s = elapsed % 60;
-		this.timeElem.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+		const elapsedMs = Date.now() - this.startTime;
+		const m = Math.floor(elapsedMs / 60000);
+		const s = Math.floor((elapsedMs % 60000) / 1000);
+		const cs = Math.floor((elapsedMs % 1000) / 10);
+		this.timeElem.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}:${cs.toString().padStart(2, '0')}`;
 
 		const now = new Date();
 		const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -529,13 +529,15 @@ export class HUD {
 		const heading = this.smoothedHeading;
 		ctx.rotate(-heading * Math.PI / 180);
 
-		ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
-		ctx.lineWidth = 1.5;
+		ctx.strokeStyle = 'rgba(0, 255, 0, 0.35)';
+		ctx.lineWidth = 1.0;
 
 		const metersPerGrid = this.minimapRange * 1000;
 		const verticalMeters = (this.currentZoom || (this.minimapRange * 1500)) * 1.1547;
 		const gridSize = (metersPerGrid * h) / verticalMeters;
 		const pixelsPerMeter = h / verticalMeters;
+
+		const circleRadius = Math.min(10000 * pixelsPerMeter, radius);
 
 		const limit = radius * 2;
 		for (let x = 0; x <= limit; x += gridSize) {
@@ -554,31 +556,6 @@ export class HUD {
 				ctx.moveTo(-limit, -y); ctx.lineTo(limit, -y); ctx.stroke();
 			}
 		}
-
-		ctx.fillStyle = '#0f0';
-		ctx.font = `bold 18px ${getComputedStyle(document.body).fontFamily}`;
-		ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-		ctx.shadowBlur = 4;
-		ctx.textAlign = 'center';
-
-		const directions = [
-			{ label: 'N', angle: 0 },
-			{ label: 'E', angle: 90 },
-			{ label: 'S', angle: 180 },
-			{ label: 'W', angle: 270 }
-		];
-
-		directions.forEach(dir => {
-			const rad = dir.angle * Math.PI / 180;
-			const dx = Math.sin(rad) * radius;
-			const dy = -Math.cos(rad) * radius;
-
-			ctx.save();
-			ctx.translate(dx, dy);
-			ctx.rotate(this.smoothedHeading * Math.PI / 180);
-			ctx.fillText(dir.label, 0, 5);
-			ctx.restore();
-		});
 
 		npcs.forEach(npc => {
 			const dist = calculateDistance(state.lon, state.lat, npc.lon, npc.lat);
@@ -610,6 +587,65 @@ export class HUD {
 
 		ctx.restore();
 
+		const pad = 12;
+		const edgeX = centerX - pad;
+		const edgeY = centerY - pad;
+
+		ctx.strokeStyle = 'rgba(0, 255, 0, 0.7)';
+		ctx.lineWidth = 1.2;
+		ctx.beginPath();
+		ctx.moveTo(0, centerY);
+		ctx.lineTo(w, centerY);
+		ctx.moveTo(centerX, 0);
+		ctx.lineTo(centerX, h);
+
+		const mainViewer = getViewer();
+		let halfHFov = Math.PI / 4;
+		if (mainViewer && mainViewer.camera && mainViewer.camera.frustum) {
+			const fovy = mainViewer.camera.frustum.fovy;
+			const aspect = window.innerWidth / window.innerHeight;
+			halfHFov = Math.atan(Math.tan(fovy / 2) * aspect);
+		}
+
+		const fovLineLen = w + h;
+		ctx.moveTo(centerX, centerY);
+		ctx.lineTo(centerX - Math.sin(halfHFov) * fovLineLen, centerY - Math.cos(halfHFov) * fovLineLen);
+		ctx.moveTo(centerX, centerY);
+		ctx.lineTo(centerX + Math.sin(halfHFov) * fovLineLen, centerY - Math.cos(halfHFov) * fovLineLen);
+		ctx.stroke();
+
+		ctx.fillStyle = '#0f0';
+		ctx.font = `bold 16px ${getComputedStyle(document.body).fontFamily}`;
+		ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+		ctx.shadowBlur = 4;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+
+		[
+			{ label: 'N', angle: 0 },
+			{ label: 'E', angle: 90 },
+			{ label: 'S', angle: 180 },
+			{ label: 'W', angle: 270 }
+		].forEach(dir => {
+			const relAngle = (dir.angle - heading) * Math.PI / 180;
+			const sinA = Math.sin(relAngle);
+			const cosA = Math.cos(relAngle);
+
+			const absSin = Math.abs(sinA);
+			const absCos = Math.abs(cosA);
+
+			let dx, dy;
+			if (edgeX * absCos > edgeY * absSin) {
+				dy = (cosA > 0) ? -edgeY : edgeY;
+				dx = (dy * sinA) / -cosA;
+			} else {
+				dx = (sinA > 0) ? edgeX : -edgeX;
+				dy = (dx * -cosA) / sinA;
+			}
+
+			ctx.fillText(dir.label, centerX + dx, centerY + dy);
+		});
+
 		ctx.save();
 		ctx.translate(centerX, centerY);
 		ctx.fillStyle = '#0f0';
@@ -622,19 +658,19 @@ export class HUD {
 		ctx.closePath();
 		ctx.fill();
 
-		ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
-		ctx.lineWidth = 2;
+		ctx.strokeStyle = 'rgba(0, 255, 0, 0.7)';
+		ctx.lineWidth = 1.2;
 		ctx.beginPath();
-		ctx.arc(0, 0, radius, 0, Math.PI * 2);
+		ctx.arc(0, 0, circleRadius, 0, Math.PI * 2);
 		ctx.stroke();
 
 		ctx.restore();
 
 		const sweepTime = (Date.now() / 1500) % 1;
-		ctx.strokeStyle = `rgba(0, 255, 0, ${0.6 * (1 - sweepTime)})`;
-		ctx.lineWidth = 2;
+		ctx.strokeStyle = `rgba(0, 255, 0, ${0.7 * (1 - sweepTime)})`;
+		ctx.lineWidth = 1.2;
 		ctx.beginPath();
-		ctx.arc(centerX, centerY, sweepTime * radius, 0, Math.PI * 2);
+		ctx.arc(centerX, centerY, sweepTime * circleRadius, 0, Math.PI * 2);
 		ctx.stroke();
 	}
 
