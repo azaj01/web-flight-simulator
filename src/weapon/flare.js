@@ -1,26 +1,6 @@
 import * as THREE from 'three';
 import * as Cesium from 'cesium';
 
-function makeSpriteTexture(color1 = '#ffffff', color2 = '#ffcc88') {
-	const size = 128;
-	const canvas = document.createElement('canvas');
-	canvas.width = size;
-	canvas.height = size;
-	const ctx = canvas.getContext('2d');
-
-	const grad = ctx.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, size / 2);
-	grad.addColorStop(0, color1);
-	grad.addColorStop(0.2, color2);
-	grad.addColorStop(0.6, 'rgba(0,0,0,0.2)');
-	grad.addColorStop(1, 'rgba(0,0,0,0)');
-
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, size, size);
-	const tex = new THREE.CanvasTexture(canvas);
-	tex.needsUpdate = true;
-	return tex;
-}
-
 export class Flare {
 	constructor(scene, viewer, startPos, heading, pitch, speed) {
 		this.scene = scene;
@@ -45,58 +25,55 @@ export class Flare {
 		this._scratchCameraMatrix = new Cesium.Matrix4();
 		this._scratchThreeMatrix = new THREE.Matrix4();
 
-		this.trailPool = [];
-		this.activeTrail = [];
-		this.lastTrailSpawn = 0;
+		this.trail = [];
+		this.distanceSinceLastTrail = 0;
 
-		this._initAssets();
 		this.initMesh();
-	}
-
-	_initAssets() {
-		this.coreTex = makeSpriteTexture('#ffffff', '#ffeecc');
-		this.glowTex = makeSpriteTexture('#ffddaa', '#ff9933');
-		this.smokeTex = (function () {
-			const size = 128;
-			const c = document.createElement('canvas');
-			c.width = size; c.height = size;
-			const ctx = c.getContext('2d');
-			const g = ctx.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, size / 1.2);
-			g.addColorStop(0, 'rgba(200,200,200,0.9)');
-			g.addColorStop(0.4, 'rgba(180,180,180,0.5)');
-			g.addColorStop(1, 'rgba(0,0,0,0)');
-			ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
-			const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
-		})();
 	}
 
 	initMesh() {
 		this.group = new THREE.Group();
 		this.group.matrixAutoUpdate = false;
 
-		const coreMat = new THREE.SpriteMaterial({ map: this.coreTex, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-		const core = new THREE.Sprite(coreMat);
-		core.scale.set(1.0, 1.0, 1.0);
-		this.core = core;
-		this.group.add(core);
+		const coreSize = 64;
+		const canvas = document.createElement('canvas');
+		canvas.width = coreSize;
+		canvas.height = coreSize;
+		const ctx = canvas.getContext('2d');
+		const grad = ctx.createRadialGradient(coreSize / 2, coreSize / 2, 0, coreSize / 2, coreSize / 2, coreSize / 2);
+		grad.addColorStop(0, '#ffffff');
+		grad.addColorStop(0.2, '#ffff66');
+		grad.addColorStop(0.5, '#ffff00');
+		grad.addColorStop(1, 'rgba(0,0,0,0)');
+		ctx.fillStyle = grad;
+		ctx.fillRect(0, 0, coreSize, coreSize);
+		const flareTexture = new THREE.CanvasTexture(canvas);
 
-		const glowMat = new THREE.SpriteMaterial({ map: this.glowTex, color: 0xffaa44, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-		const glow = new THREE.Sprite(glowMat);
-		glow.scale.set(3.0, 3.0, 1.0);
-		this.glow = glow;
-		this.group.add(glow);
+		const flareMat = new THREE.SpriteMaterial({
+			map: flareTexture,
+			color: 0xffff44,
+			transparent: true,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false
+		});
+
+		this.flareSprite = new THREE.Sprite(flareMat);
+		this.flareSprite.scale.set(1.5, 1.5, 1.0);
+		this.group.add(this.flareSprite);
+
+		const glowMat = new THREE.SpriteMaterial({
+			map: flareTexture,
+			color: 0xffaa00,
+			transparent: true,
+			opacity: 0.8,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false
+		});
+		this.glowSprite = new THREE.Sprite(glowMat);
+		this.glowSprite.scale.set(4.0, 4.0, 1.0);
+		this.group.add(this.glowSprite);
 
 		this.scene.add(this.group);
-
-		for (let i = 0; i < 80; i++) {
-			const mat = new THREE.SpriteMaterial({ map: this.smokeTex, color: 0xcccccc, transparent: true, opacity: 0, depthWrite: false });
-			const s = new THREE.Sprite(mat);
-			s.scale.set(0.8, 0.8, 1);
-			s.matrixAutoUpdate = false;
-			s._poolIndex = i;
-			this.trailPool.push(s);
-			this.scene.add(s);
-		}
 	}
 
 	update(dt) {
@@ -108,8 +85,8 @@ export class Flare {
 			return;
 		}
 
-		const move = (this.speed * dt);
-		const newPos = this.calculateMove(move);
+		const moveDist = this.speed * dt;
+		const newPos = this.calculateMove(moveDist);
 		this.lon = newPos.lon;
 		this.lat = newPos.lat;
 		this.alt = newPos.alt;
@@ -117,18 +94,23 @@ export class Flare {
 		this.verticalVelocity -= this.gravity * dt;
 		this.alt += this.verticalVelocity * dt;
 
-		this.speed *= 0.985;
+		this.speed *= 0.98;
 
 		this.updateThreeMatrix();
-		this._spawnTrailIfNeeded();
+		this._spawnTrailIfNeeded(dt);
 		this._updateTrail(dt);
 
 		const t = this.life / this.maxLife;
-		this.core.material.opacity = Math.min(1.0, t * 1.4);
-		this.glow.material.opacity = Math.min(0.9, t * 1.2);
-		const coreScale = 0.6 + (1 - t) * 0.2;
-		this.core.scale.set(coreScale, coreScale, 1);
-		this.glow.scale.set(2.5 * coreScale, 2.5 * coreScale, 1);
+		if (this.flareSprite) {
+			this.flareSprite.material.opacity = Math.min(1.0, t * 1.5);
+			const flicker = 0.9 + Math.random() * 0.2;
+			this.flareSprite.scale.set(1.5 * flicker, 1.5 * flicker, 1.0);
+		}
+		if (this.glowSprite) {
+			this.glowSprite.material.opacity = Math.min(0.8, t * 1.2);
+			const flicker = 0.8 + Math.random() * 0.4;
+			this.glowSprite.scale.set(4.0 * flicker, 4.0 * flicker, 1.0);
+		}
 	}
 
 	calculateMove(dist) {
@@ -148,95 +130,90 @@ export class Flare {
 	updateThreeMatrix() {
 		const viewMatrix = this.viewer.camera.viewMatrix;
 		const pos = Cesium.Cartesian3.fromDegrees(this.lon, this.lat, this.alt);
-		const enuMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(pos);
+		const enuMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(pos, undefined, this._scratchMatrix);
 
-		const hRad = Cesium.Math.toRadians(this.heading);
-		const pRad = Cesium.Math.toRadians(this.pitch);
-
-		const localForward = new Cesium.Cartesian3(
-			Math.sin(hRad) * Math.cos(pRad),
-			Math.cos(hRad) * Math.cos(pRad),
-			Math.sin(pRad)
-		);
-
-		const worldForward = Cesium.Matrix4.multiplyByPointAsVector(enuMatrix, localForward, new Cesium.Cartesian3());
-		Cesium.Cartesian3.normalize(worldForward, worldForward);
-
-		const enuUp = new Cesium.Cartesian3(enuMatrix[8], enuMatrix[9], enuMatrix[10]);
-		let worldRight = new Cesium.Cartesian3();
-		if (Math.abs(Cesium.Cartesian3.dot(worldForward, enuUp)) > 0.99) {
-			const enuNorth = new Cesium.Cartesian3(enuMatrix[4], enuMatrix[5], enuMatrix[6]);
-			Cesium.Cartesian3.cross(worldForward, enuNorth, worldRight);
-		} else {
-			Cesium.Cartesian3.cross(worldForward, enuUp, worldRight);
-		}
-		Cesium.Cartesian3.normalize(worldRight, worldRight);
-		const worldUp = Cesium.Cartesian3.cross(worldRight, worldForward, new Cesium.Cartesian3());
-
-		const modelMatrix = new Cesium.Matrix4(
-			worldRight.x, worldForward.x, worldUp.x, pos.x,
-			worldRight.y, worldForward.y, worldUp.y, pos.y,
-			worldRight.z, worldForward.z, worldUp.z, pos.z,
-			0, 0, 0, 1
-		);
-
-		const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, new Cesium.Matrix4());
+		const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, enuMatrix, this._scratchCameraMatrix);
 		for (let j = 0; j < 16; j++) this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
 		this.group.matrix.copy(this._scratchThreeMatrix);
 		this.group.updateMatrixWorld(true);
 	}
 
-	_spawnTrailIfNeeded() {
-		const now = performance.now();
-		if (now - this.lastTrailSpawn < 25) return;
-		this.lastTrailSpawn = now;
+	_spawnTrailIfNeeded(dt) {
+		this.distanceSinceLastTrail += (this.speed + Math.abs(this.verticalVelocity)) * dt;
+		const spawnInterval = 3.0;
 
-		const s = this.trailPool.find(sp => sp.material.opacity === 0);
-		if (!s) return;
-		s._lon = this.lon;
-		s._lat = this.lat;
-		s._alt = this.alt;
-		s.life = 1.8 + Math.random() * 0.8;
-		s.maxLife = s.life;
-		s.randomScale = 0.6 + Math.random() * 1.2;
-		s.material.opacity = 0.9;
-		this.activeTrail.push(s);
+		while (this.distanceSinceLastTrail >= spawnInterval) {
+			const backDist = this.distanceSinceLastTrail - spawnInterval;
+			const ratio = backDist / ((this.speed + Math.abs(this.verticalVelocity)) * dt || 1);
+
+			const spawnLon = this.lon;
+			const spawnLat = this.lat;
+			const spawnAlt = this.alt - this.verticalVelocity * dt * ratio;
+
+			this.distanceSinceLastTrail -= spawnInterval;
+
+			const smokeGeom = new THREE.SphereGeometry(1.0, 12, 12);
+			const gray = 0.4 + Math.random() * 0.4;
+			const smokeMat = new THREE.MeshBasicMaterial({
+				color: new THREE.Color(gray, gray, gray),
+				transparent: true,
+				opacity: 0.5 + Math.random() * 0.2
+			});
+			const smoke = new THREE.Mesh(smokeGeom, smokeMat);
+			smoke.lon = spawnLon;
+			smoke.lat = spawnLat;
+			smoke.alt = spawnAlt;
+			smoke.life = 2.0 + Math.random() * 1.5;
+			smoke.maxLife = smoke.life;
+			smoke.matrixAutoUpdate = false;
+
+			this.scene.add(smoke);
+			this.trail.push(smoke);
+		}
 	}
 
 	_updateTrail(dt) {
 		const viewMatrix = this.viewer.camera.viewMatrix;
-		for (let i = this.activeTrail.length - 1; i >= 0; i--) {
-			const t = this.activeTrail[i];
+		for (let i = this.trail.length - 1; i >= 0; i--) {
+			const t = this.trail[i];
 			t.life -= dt;
 			if (t.life <= 0) {
-				t.material.opacity = 0;
-				this.activeTrail.splice(i, 1);
+				this.scene.remove(t);
+				this.trail.splice(i, 1);
 				continue;
 			}
 
+			if (!t.randomScale) t.randomScale = 0.5 + Math.random() * 0.5;
 			const lifeRatio = t.life / t.maxLife;
-			const scale = t.randomScale * (1.0 + (1.0 - lifeRatio) * 6.0);
-			t.scale.set(scale, scale, 1);
-			t.material.opacity = Math.max(0, lifeRatio * 0.45);
+			const scale = t.randomScale * (1.0 + (1.0 - lifeRatio) * 8.0);
+			t.scale.set(scale, scale, scale);
 
-			const pos = Cesium.Cartesian3.fromDegrees(t._lon, t._lat, t._alt, undefined, this._scratchCartesian);
+			t.material.opacity = lifeRatio * 0.4;
+
+			const pos = Cesium.Cartesian3.fromDegrees(t.lon, t.lat, t.alt, undefined, this._scratchCartesian);
 			const modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(pos, undefined, this._scratchMatrix);
 			const cameraSpaceMatrix = Cesium.Matrix4.multiply(viewMatrix, modelMatrix, this._scratchCameraMatrix);
-			for (let j = 0; j < 16; j++) this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
+
+			for (let j = 0; j < 16; j++) {
+				this._scratchThreeMatrix.elements[j] = cameraSpaceMatrix[j];
+			}
+
 			t.matrix.copy(this._scratchThreeMatrix);
+			t.matrix.scale(new THREE.Vector3(scale, scale, scale));
 			t.updateMatrixWorld(true);
 
-			t._alt -= 0.2 * (1 - lifeRatio);
+			t.alt += 0.5 * dt;
 		}
 	}
 
 	destroy() {
 		this.active = false;
-		if (this.group) this.scene.remove(this.group);
-		for (const s of this.trailPool) {
-			this.scene.remove(s);
+		if (this.group) {
+			this.scene.remove(this.group);
 		}
-		this.trailPool = [];
-		this.activeTrail = [];
+		for (const t of this.trail) {
+			this.scene.remove(t);
+		}
+		this.trail = [];
 	}
 }

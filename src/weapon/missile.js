@@ -19,7 +19,8 @@ export class Missile {
 		this.roll = 0;
 		this.speed = speed + 800;
 
-		this.life = 10;
+		this.maxLife = 10;
+		this.life = this.maxLife;
 		this.active = true;
 
 		this._scratchMatrix = new Cesium.Matrix4();
@@ -29,7 +30,7 @@ export class Missile {
 		this._scratchCameraMatrix = new Cesium.Matrix4();
 
 		this.trail = [];
-		this.lastTrailSpawn = 0;
+		this.distanceSinceLastTrail = 0;
 
 		this.initMesh();
 	}
@@ -256,27 +257,37 @@ export class Missile {
 	}
 
 	updateTrail(dt) {
-		const now = performance.now();
-		if (this.active && now - this.lastTrailSpawn > 5) {
-			this.lastTrailSpawn = now;
+		if (this.active) {
+			this.distanceSinceLastTrail += this.speed * dt;
+			const spawnInterval = 20.0;
+			while (this.distanceSinceLastTrail >= spawnInterval) {
+				const backDist = this.distanceSinceLastTrail - spawnInterval;
+				const spawnPos = movePosition(this.lon, this.lat, this.alt, this.heading, this.pitch, -backDist);
 
-			const smokeGeom = new THREE.SphereGeometry(1.0, 16, 16);
-			const gray = 0.5 + Math.random() * 0.75;
-			const smokeMat = new THREE.MeshBasicMaterial({
-				color: new THREE.Color(gray, gray, gray),
-				transparent: true,
-				opacity: 0.6 + Math.random() * 0.25
-			});
-			const smoke = new THREE.Mesh(smokeGeom, smokeMat);
-			smoke.lon = this.lon;
-			smoke.lat = this.lat;
-			smoke.alt = this.alt;
-			smoke.life = 4.0;
-			smoke.maxLife = 4.0;
-			smoke.matrixAutoUpdate = false;
+				this.distanceSinceLastTrail -= spawnInterval;
 
-			this.scene.add(smoke);
-			this.trail.push(smoke);
+				const smokeGeom = new THREE.SphereGeometry(1.0, 16, 16);
+				const gray = 0.5 + Math.random() * 0.75;
+				const smokeMat = new THREE.MeshBasicMaterial({
+					color: new THREE.Color(gray, gray, gray),
+					transparent: true,
+					opacity: 0.6 + Math.random() * 0.25
+				});
+				const smoke = new THREE.Mesh(smokeGeom, smokeMat);
+				smoke.lon = spawnPos.lon;
+				smoke.lat = spawnPos.lat;
+				smoke.alt = spawnPos.alt;
+				smoke.life = 4.0;
+				smoke.maxLife = 4.0;
+
+				const age = this.maxLife - this.life;
+				smoke.launchScale = Math.min(1.0, 0.25 + (age / 1.5) * 0.75);
+
+				smoke.matrixAutoUpdate = false;
+
+				this.scene.add(smoke);
+				this.trail.push(smoke);
+			}
 		}
 
 		const viewMatrix = this.viewer.camera.viewMatrix;
@@ -290,7 +301,8 @@ export class Missile {
 			}
 
 			if (!t.randomScale) t.randomScale = 0.8 + Math.random() * 0.5;
-			const scale = t.randomScale * (1.0 + (1.0 - t.life / t.maxLife) * 15.0);
+			const launchScale = t.launchScale || 1.0;
+			const scale = launchScale * t.randomScale * (1.0 + (1.0 - t.life / t.maxLife) * 15.0);
 			t.scale.set(scale, scale, scale);
 
 			const opacity = (t.life / t.maxLife) * 0.5;
