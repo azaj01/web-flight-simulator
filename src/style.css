@@ -87,6 +87,7 @@ html {
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
+	filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.5));
 }
 
 #hud-alt-box {
@@ -98,6 +99,7 @@ html {
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
+	filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.5));
 }
 
 .value-box {
@@ -107,7 +109,6 @@ html {
 	background: rgba(0, 40, 0, 0.25);
 	position: relative;
 	box-shadow: none;
-	filter: drop-shadow(0 0 5px rgba(0, 255, 0, 0.3));
 }
 
 .value-box::before {
@@ -166,11 +167,11 @@ html {
 	left: 30px;
 	width: 250px;
 	height: 250px;
-	border: 2px solid rgba(0, 255, 0, 0.5);
+	border: 1px solid #0f0;
 	background: rgba(0, 40, 0, 0.3);
 	overflow: hidden;
 	box-sizing: border-box;
-	box-shadow: 0 0 20px rgba(0, 255, 0, 0.15);
+	box-shadow: 0 0 15px rgba(0, 255, 0, 0.25);
 }
 
 #coords {
@@ -181,12 +182,13 @@ html {
 	font-size: 13px;
 	text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
 	background: rgba(0, 40, 0, 0.5);
-	border: 2px solid rgba(0, 255, 0, 0.5);
+	border: 1px solid #0f0;
 	border-bottom: none;
 	box-sizing: border-box;
 	padding: 4px;
 	text-align: center;
 	letter-spacing: 1px;
+	box-shadow: 0 0 15px rgba(0, 255, 0, 0.25);
 }
 
 #compass-container {
@@ -583,7 +585,7 @@ html {
 	color: #fff;
 	line-height: 1.4;
 	text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-	min-height: 50px;
+	min-height: 52px;
 }
 
 .dialogue-hint {
@@ -1192,9 +1194,9 @@ input[type="range"]::-webkit-slider-thumb {
 
 .weapon-item.active {
 	background: rgba(0, 80, 0, 0.6);
-	border: 1px solid rgba(0, 255, 0, 0.8);
+	border: 1px solid #0f0;
 	opacity: 1;
-	box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+	box-shadow: 0 0 10px rgba(0, 255, 0, 0.25);
 	position: relative;
 }
 
@@ -1203,7 +1205,7 @@ input[type="range"]::-webkit-slider-thumb {
 	position: absolute;
 	right: 0;
 	top: 0;
-	width: 5px;
+	width: 3px;
 	height: 100%;
 	background: #0f0;
 	box-shadow: 0 0 8px #0f0;
@@ -1215,7 +1217,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 #aircraft-icon {
 	width: 70px;
-	border: 1px solid rgba(0, 255, 0, 0.8);
+	border: 1px solid #0f0;
 	background: rgba(0, 40, 0, 0.4);
 	display: flex;
 	flex-direction: column;
@@ -1223,7 +1225,7 @@ input[type="range"]::-webkit-slider-thumb {
 	justify-content: center;
 	padding: 10px;
 	box-sizing: border-box;
-	box-shadow: 0 0 20px rgba(0, 255, 0, 0.12);
+	box-shadow: 0 0 15px rgba(0, 255, 0, 0.25);
 }
 
 #aircraft-icon img {
