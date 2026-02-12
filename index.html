@@ -14,12 +14,56 @@
 	<div id="threeContainer"></div>
 
 	<div id="mainMenu" class="overlay">
-		<h1 class="menu-title">WEB FLIGHT SIMULATOR</h1>
-		<button id="startBtn" class="menu-btn" disabled>PLAY</button>
-		<button id="optionsBtn" class="menu-btn">OPTIONS</button>
-		<button id="helpBtn" class="menu-btn">HELP</button>
-		<button id="creditsBtn" class="menu-btn">CREDITS</button>
-		<button id="aboutBtn" class="menu-btn">ABOUT ME</button>
+		<div class="menu-container">
+			<div class="menu-vignette"></div>
+			<div class="menu-content">
+				<div class="menu-header">
+					<div class="menu-logo">
+						<span class="logo-main">WEB FLIGHT</span>
+						<span class="logo-sub">SIMULATOR</span>
+					</div>
+					<div class="menu-version">VER 1.0.0</div>
+				</div>
+				
+				<div class="menu-main">
+					<nav class="menu-nav">
+						<button id="startBtn" class="main-menu-btn" disabled>
+							<span class="btn-top">01</span>
+							<span class="btn-mid">START GAME</span>
+							<span class="btn-bot">COMMENCE FLIGHT OPERATIONS</span>
+						</button>
+						<button id="optionsBtn" class="main-menu-btn">
+							<span class="btn-top">02</span>
+							<span class="btn-mid">SYSTEM CONFIG</span>
+							<span class="btn-bot">ADJUST HARDWARE SETTINGS</span>
+						</button>
+						<button id="helpBtn" class="main-menu-btn">
+							<span class="btn-top">03</span>
+							<span class="btn-mid">OPERATIONS MANUAL</span>
+							<span class="btn-bot">FLIGHT CONTROLS & PROCEDURES</span>
+						</button>
+						<button id="creditsBtn" class="main-menu-btn">
+							<span class="btn-top">04</span>
+							<span class="btn-mid">CREDITS</span>
+							<span class="btn-bot">DEVELOPMENT DATA</span>
+						</button>
+						<button id="aboutBtn" class="main-menu-btn">
+							<span class="btn-top">05</span>
+							<span class="btn-mid">ABOUT DEVELOPER</span>
+							<span class="btn-bot">DEVELOPER INFORMATION</span>
+						</button>
+					</nav>
+				</div>
+
+				<div class="menu-footer">
+					<div class="footer-status">
+						<span class="time-label">CURRENT TIME (ZULU):</span>
+						<span id="menu-time" class="time-value">2026-01-01T00:00:00Z</span>
+					</div>
+					<div class="footer-instruction">SELECT COMMAND TO PROCEED</div>
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<div id="loadingIndicator" class="loading-container">
@@ -29,11 +73,11 @@
 
 	<div id="optionsModal" class="modal hidden">
 		<div class="modal-header">
-			<div class="modal-title">System Settings</div>
-			<button class="close-modal">X</button>
+			<div class="modal-title">SYSTEM CONFIG</div>
+			<button class="close-modal">CLOSE</button>
 		</div>
 		<div class="modal-body">
-			<h3>Graphics Settings</h3>
+			<h3>GRAPHICS UNIT</h3>
 			<div class="setting-item">
 				<span>Graphics Quality</span>
 				<select id="graphicsQuality">
@@ -44,50 +88,35 @@
 			</div>
 			<div class="setting-item">
 				<span>Anti-Aliasing (FXAA)</span>
-				<label class="switch">
-					<input type="checkbox" id="antialiasing" checked>
-					<span class="slider-toggle"></span>
-				</label>
+				<input type="checkbox" id="antialiasing" checked>
 			</div>
 			<div class="setting-item">
 				<span>Fog Effects</span>
-				<label class="switch">
-					<input type="checkbox" id="fogEffects" checked>
-					<span class="slider-toggle"></span>
-				</label>
+				<input type="checkbox" id="fogEffects" checked>
 			</div>
 
-			<h3>Simulation Settings</h3>
+			<h3>FLIGHT CONTROL</h3>
 
 			<div class="setting-item">
 				<span>Mouse Sensitivity</span>
-				<div class="setting-control">
-					<input type="range" id="sensitivitySlider" min="0.05" max="1.0" step="0.05" value="0.2" class="setting-slider">
+				<div class="setting-control" style="display:flex; align-items:center; gap:10px;">
+					<input type="range" id="sensitivitySlider" min="0.05" max="1.0" step="0.05" value="0.2">
 					<span id="sensitivityValue" class="setting-value">0.2</span>
 				</div>
 			</div>
 			<div class="setting-item">
 				<span>Show HUD Controls</span>
-				<label class="switch">
-					<input type="checkbox" id="showHud" checked>
-					<span class="slider-toggle"></span>
-				</label>
+				<input type="checkbox" id="showHud" checked>
 			</div>
 
 			<div class="setting-item">
 				<span>Show Horizon Lines</span>
-				<label class="switch">
-					<input type="checkbox" id="showHorizonLines">
-					<span class="slider-toggle"></span>
-				</label>
+				<input type="checkbox" id="showHorizonLines">
 			</div>
 
 			<div class="setting-item">
 				<span>Sound Active</span>
-				<label class="switch">
-					<input type="checkbox" id="soundEnabled" checked>
-					<span class="slider-toggle"></span>
-				</label>
+				<input type="checkbox" id="soundEnabled" checked>
 			</div>
 
 			<div class="setting-item">
@@ -98,35 +127,32 @@
 					<option value="10">10km (Regional)</option>
 				</select>
 			</div>
-
-			<div class="modal-actions">
-				<button id="saveOptionsBtn" class="menu-btn btn-primary">SAVE & APPLY</button>
-			</div>
+		</div>
+		<div class="modal-footer">
+			<button id="saveOptionsBtn">CONFIRM & SAVE</button>
 		</div>
 	</div>
 
 	<div id="helpModal" class="modal hidden">
 		<div class="modal-header">
-			<div class="modal-title">Flight Manual</div>
-			<button class="close-modal">X</button>
+			<div class="modal-title">OPERATIONS MANUAL</div>
+			<button class="close-modal">CLOSE</button>
 		</div>
 		<div class="modal-body">
-			<h3>Basic Controls</h3>
+			<h3>FLIGHT CONTROL</h3>
 			<div class="control-grid">
-				<div class="key">ARROW UP / DOWN</div>
+				<div class="key">UP / DOWN</div>
 				<div>Pitch Down / Up</div>
-				<div class="key">ARROW LEFT / RIGHT</div>
+				<div class="key">LEFT / RIGHT</div>
 				<div>Roll Left / Right</div>
 				<div class="key">A / D</div>
 				<div>Yaw (Rudder)</div>
-				<div class="key">W</div>
-				<div>Increase Throttle</div>
-				<div class="key">S</div>
-				<div>Decrease Throttle</div>
+				<div class="key">W / S</div>
+				<div>Throttle +/-</div>
 				<div class="key">SPACE</div>
 				<div>Afterburner (Boost)</div>
 			</div>
-			<h3>Combat Controls</h3>
+			<h3>COMBAT SYSTEMS</h3>
 			<div class="control-grid">
 				<div class="key">1 / 2 / Q</div>
 				<div>Switch Weapons</div>
@@ -135,55 +161,136 @@
 				<div class="key">V</div>
 				<div>Release Flares</div>
 			</div>
-			<h3>Camera Controls</h3>
+			<h3>NAVIGATION</h3>
 			<div class="control-grid">
-				<div class="key">LEFT DRAG</div>
-				<div>Orbit Camera (Spectate)</div>
-			</div>
-			<h3>System</h3>
-			<div class="control-grid">
+				<div class="key">DRAG MOUSE</div>
+				<div>Look Around / Orbit</div>
 				<div class="key">ESC / P</div>
-				<div>Pause Menu</div>
+				<div>Pause / Tactical Menu</div>
 			</div>
 		</div>
 	</div>
 
 	<div id="creditsModal" class="modal hidden">
 		<div class="modal-header">
-			<div class="modal-title">Project Credits</div>
-			<button class="close-modal">X</button>
+			<div class="modal-title">CREDITS</div>
+			<button class="close-modal">CLOSE</button>
 		</div>
-		<div class="modal-body modal-body-centered">
-			<p>Developed by <strong><a href="https://tarmizi.id" target="_blank" class="accent-link">Dimar Tarmizi</a></strong></p>
-			<p>Built with CesiumJS & Three.js</p>
-			<p>3D Model "Low poly F-15" by SIpriv, licensed under CC BY 4.0.
+		<div class="modal-body credits-body">
+			<div class="credits-header">
+				<div class="label-tiny">DEVELOPED BY</div>
+				<div class="developed-by-name"><a href="https://tarmizi.id" target="_blank">DIMAR TARMIZI</a></div>
+			</div>
+			<div class="credits-tech-grid">
+				<div>
+					<div class="label-tiny">ENGINE</div>
+					<div class="tech-value">CesiumJS & Three.js</div>
+				</div>
+				<div>
+					<div class="label-tiny">ASSETS</div>
+					<div class="tech-value">F-15 GLB by SIpriv</div>
+				</div>
+			</div>
+			<p class="credits-disclaimer">THIS IS A NON-COMMERCIAL WEB-BASED FLIGHT SIMULATION PROJECT.</p>
 		</div>
 	</div>
 
 	<div id="aboutBtnModal" class="modal hidden">
 		<div class="modal-header">
-			<div class="modal-title">Developer Bio</div>
-			<button class="close-modal">X</button>
+			<div class="modal-title">DEVELOPER BIO</div>
+			<button class="close-modal">CLOSE</button>
 		</div>
 		<div class="modal-body">
 			<div class="bio-layout">
-				<img src="/assets/images/dimar-tarmizi.jpg" alt="Dimar Tarmizi" class="bio-avatar">
-				<div class="flex-1">
-					<p class="no-margin-top"><strong>Name:</strong> <a href="https://tarmizi.id" target="_blank" class="accent-link">Dimar Tarmizi</a></p>
-					<p><strong>Spec:</strong> Full-stack Web Software Engineer</p>
-					<p class="margin-top-md">Full-stack web engineer focused on building scalable web applications, robust back-end systems, and dynamic front-end interfaces. Experienced in end-to-end development, deployment, server management, and VPS/IaaS environments to ensure performance and reliability.</p>
+				<div class="bio-avatar-container">
+					<img src="/assets/images/dimar-tarmizi.jpg" alt="Dimar Tarmizi" class="bio-avatar">
+					<div class="bio-id">ID: RYNX</div>
+				</div>
+				<div class="bio-details">
+					<div class="bio-section">
+						<div class="label-tiny">NAME</div>
+						<div class="bio-name">DIMAR TARMIZI</div>
+					</div>
+					<div class="bio-section">
+						<div class="label-tiny">SPECIFICATION</div>
+						<div class="bio-spec">FULL-STACK SOFTWARE ENGINEER</div>
+					</div>
+					<div class="bio-description">
+						Experienced in end-to-end development, deployment, and server management. Specialized in building scalable web architectures and dynamic simulation interfaces.
+					</div>
+					<div class="bio-social-links">
+						<a href="https://tarmizi.id" target="_blank" class="btn-portfolio">PORTFOLIO ACCESS</a>
+						<a href="https://github.com/dimartarmizi" target="_blank" class="btn-social">GITHUB</a>
+						<a href="https://www.facebook.com/dimartarmizi" target="_blank" class="btn-social">FACEBOOK</a>
+						<a href="https://www.instagram.com/dimartarmizi" target="_blank" class="btn-social">INSTAGRAM</a>
+						<a href="https://www.linkedin.com/in/dimartarmizi" target="_blank" class="btn-social">LINKEDIN</a>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 
 	<div id="pauseMenu" class="overlay hidden">
-		<h2 class="menu-title">PAUSED</h2>
-		<button id="resumeBtn" class="menu-btn">RESUME</button>
-		<button id="restartBtn" class="menu-btn">RESTART</button>
-		<button id="pauseHelpBtn" class="menu-btn">HELP</button>
-		<button id="pauseOptionsBtn" class="menu-btn">OPTIONS</button>
-		<button id="quitBtn" class="menu-btn">QUIT TO MENU</button>
+		<div class="pause-content">
+			<div class="pause-sidebar">
+				<div class="pause-header">
+					<h2 class="pause-title">PAUSED</h2>
+					<div class="pause-subtitle">SYSTEM HOLD</div>
+				</div>
+				<nav class="pause-nav">
+					<button id="resumeBtn" class="pause-btn">
+						<span class="btn-label">RESUME</span>
+						<span class="btn-desc">RETURN TO FLIGHT</span>
+					</button>
+					<button id="restartBtn" class="pause-btn">
+						<span class="btn-label">RESTART</span>
+						<span class="btn-desc">RESTART GAME</span>
+					</button>
+					<button id="pauseHelpBtn" class="pause-btn">
+						<span class="btn-label">HELP</span>
+						<span class="btn-desc">OPERATIONS MANUAL</span>
+					</button>
+					<button id="pauseOptionsBtn" class="pause-btn">
+						<span class="btn-label">OPTIONS</span>
+						<span class="btn-desc">SYSTEM CONFIG</span>
+					</button>
+					<button id="quitBtn" class="pause-btn quit">
+						<span class="btn-label">QUIT</span>
+						<span class="btn-desc">BACK TO MENU</span>
+					</button>
+				</nav>
+			</div>
+			<div class="pause-main">
+				<div class="pause-map-wrapper">
+					<div class="map-header">
+						<span class="map-title">TACTICAL MAP</span>
+						<span id="pause-region" class="map-location">UNKNOWN REGION</span>
+					</div>
+					<div id="pause-minimap-container">
+						<div id="pauseMinimapCesium"></div>
+						<canvas id="pauseMinimap"></canvas>
+					</div>
+					<div class="map-footer">
+						<div class="coord-item">
+							<span class="coord-label">LAT</span>
+							<span id="pause-lat" class="coord-value">0.0000</span>
+						</div>
+						<div class="coord-item">
+							<span class="coord-label">LON</span>
+							<span id="pause-lon" class="coord-value">0.0000</span>
+						</div>
+						<div class="coord-item">
+							<span class="coord-label">ALT</span>
+							<span id="pause-alt" class="coord-value">0 FT</span>
+						</div>
+						<div class="coord-item">
+							<span class="coord-label">LOCAL TIME</span>
+							<span id="pause-time" class="coord-value">2026-01-01T00:00:00Z</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<div id="crashMenu" class="overlay hidden">

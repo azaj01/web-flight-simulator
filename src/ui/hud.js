@@ -1,4 +1,4 @@
-import { setMinimapCamera, getMiniViewer, getViewer } from '../world/cesiumWorld';
+import { setMinimapCamera, getMiniViewer, getViewer, setPauseMinimapCamera, getPauseMiniViewer } from '../world/cesiumWorld';
 import { calculateDistance } from '../world/regions';
 import * as Cesium from 'cesium';
 
@@ -13,6 +13,17 @@ export class HUD {
 		this.coordsElem = document.getElementById('coords');
 		this.minimapCanvas = document.getElementById('minimap');
 		this.miniCtx = this.minimapCanvas.getContext('2d');
+
+		this.pauseMinimapCanvas = document.getElementById('pauseMinimap');
+		if (this.pauseMinimapCanvas) {
+			this.pauseMiniCtx = this.pauseMinimapCanvas.getContext('2d');
+		}
+		this.pauseRegionElem = document.getElementById('pause-region');
+		this.pauseLatElem = document.getElementById('pause-lat');
+		this.pauseLonElem = document.getElementById('pause-lon');
+		this.pauseAltElem = document.getElementById('pause-alt');
+		this.pauseTimeElem = document.getElementById('pause-time');
+
 		this.uiContainer = document.getElementById('uiContainer');
 		this.compassTape = document.getElementById('compass-tape');
 		this.headingDisplay = document.getElementById('heading-display');
@@ -275,13 +286,25 @@ export class HUD {
 	}
 
 	resizeMinimap() {
-		this.minimapCanvas.width = this.minimapCanvas.offsetWidth;
-		this.minimapCanvas.height = this.minimapCanvas.offsetHeight;
+		requestAnimationFrame(() => {
+			this.minimapCanvas.width = this.minimapCanvas.offsetWidth;
+			this.minimapCanvas.height = this.minimapCanvas.offsetHeight;
 
-		const miniViewer = getMiniViewer();
-		if (miniViewer) {
-			miniViewer.resize();
-		}
+			if (this.pauseMinimapCanvas) {
+				this.pauseMinimapCanvas.width = this.pauseMinimapCanvas.offsetWidth;
+				this.pauseMinimapCanvas.height = this.pauseMinimapCanvas.offsetHeight;
+			}
+
+			const miniViewer = getMiniViewer();
+			if (miniViewer) {
+				miniViewer.resize();
+			}
+
+			const pauseMiniViewer = getPauseMiniViewer();
+			if (pauseMiniViewer) {
+				pauseMiniViewer.resize();
+			}
+		});
 	}
 
 	createHorizon() {
@@ -352,6 +375,109 @@ export class HUD {
 
 			this.setShowHorizonLines(this.showHorizonLines);
 		}
+	}
+
+	updatePauseMenu(state, currentRegionName, npcs = []) {
+		if (this.pauseRegionElem) this.pauseRegionElem.innerText = currentRegionName || "UNKNOWN REGION";
+
+		if (this.pauseLatElem) {
+			const latDir = state.lat >= 0 ? 'N' : 'S';
+			this.pauseLatElem.innerText = `${Math.abs(state.lat).toFixed(4)}°${latDir}`;
+		}
+		if (this.pauseLonElem) {
+			const lonDir = state.lon >= 0 ? 'E' : 'W';
+			this.pauseLonElem.innerText = `${Math.abs(state.lon).toFixed(4)}°${lonDir}`;
+		}
+		if (this.pauseAltElem) {
+			const altFeet = Math.max(0, Math.round(state.alt * 3.28084));
+			this.pauseAltElem.innerText = `${altFeet.toLocaleString()} FT`;
+		}
+
+		if (this.pauseTimeElem) {
+			const now = new Date();
+			const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+			const tzOffsetHours = Math.round((state.lon || 0) / 15);
+			const localDate = new Date(utc + (3600000 * tzOffsetHours));
+
+			const yyyy = localDate.getFullYear();
+			const mm = (localDate.getMonth() + 1).toString().padStart(2, '0');
+			const dd = localDate.getDate().toString().padStart(2, '0');
+			const hh = localDate.getHours().toString().padStart(2, '0');
+			const min = localDate.getMinutes().toString().padStart(2, '0');
+			const ss = localDate.getSeconds().toString().padStart(2, '0');
+
+			this.pauseTimeElem.innerText = `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}Z`;
+		}
+
+		const zoomAlt = this.minimapRange * 10000;
+		setPauseMinimapCamera(state.lon, state.lat, zoomAlt, 0);
+
+		if (!this.pauseMiniCtx || !this.pauseMinimapCanvas) return;
+		const ctx = this.pauseMiniCtx;
+		const w = this.pauseMinimapCanvas.width;
+		const h = this.pauseMinimapCanvas.height;
+		const centerX = w / 2;
+		const centerY = h / 2;
+
+		ctx.clearRect(0, 0, w, h);
+
+		ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
+		ctx.lineWidth = 1;
+		const gridSize = 50;
+
+		ctx.beginPath();
+		for (let x = centerX; x <= w; x += gridSize) {
+			ctx.moveTo(x, 0); ctx.lineTo(x, h);
+		}
+		for (let x = centerX - gridSize; x >= 0; x -= gridSize) {
+			ctx.moveTo(x, 0); ctx.lineTo(x, h);
+		}
+		for (let y = centerY; y <= h; y += gridSize) {
+			ctx.moveTo(0, y); ctx.lineTo(w, y);
+		}
+		for (let y = centerY - gridSize; y >= 0; y -= gridSize) {
+			ctx.moveTo(0, y); ctx.lineTo(w, y);
+		}
+		ctx.stroke();
+
+		ctx.strokeStyle = '#0f0';
+		ctx.lineWidth = 2;
+		const size = 15;
+		ctx.beginPath();
+		ctx.moveTo(centerX - size, centerY); ctx.lineTo(centerX + size, centerY);
+		ctx.moveTo(centerX, centerY - size); ctx.lineTo(centerX, centerY + size);
+		ctx.stroke();
+
+		ctx.fillStyle = '#0f0';
+		ctx.font = '12px AceCombat';
+		ctx.fillText("YOU", centerX + 20, centerY + 5);
+
+		const verticalMeters = zoomAlt * 1.1547;
+		const pixelsPerMeter = h / verticalMeters;
+
+		npcs.forEach(npc => {
+			const dx_m = (npc.lon - state.lon) * 111320 * Math.cos(state.lat * Math.PI / 180);
+			const dy_m = (npc.lat - state.lat) * 111320;
+
+			const px = centerX + dx_m * pixelsPerMeter;
+			const py = centerY - dy_m * pixelsPerMeter;
+
+			if (px < 0 || px > w || py < 0 || py > h) return;
+
+			ctx.strokeStyle = '#fff';
+			ctx.lineWidth = 2;
+			ctx.save();
+			ctx.translate(px, py);
+			ctx.rotate(45 * Math.PI / 180);
+			ctx.beginPath();
+			ctx.rect(-5, -5, 10, 10);
+			ctx.stroke();
+			ctx.restore();
+
+			ctx.fillStyle = '#fff';
+			ctx.font = '10px AceCombat';
+			ctx.fillText(npc.name || "BOGEY", px + 10, py + 5);
+		});
 	}
 
 	update(state, npcs = []) {

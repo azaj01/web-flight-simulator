@@ -2,6 +2,7 @@ import * as Cesium from 'cesium';
 
 let viewer;
 let miniViewer;
+let pauseMiniViewer;
 
 export function initCesium() {
 	viewer = new Cesium.Viewer("cesiumContainer", {
@@ -41,7 +42,29 @@ export function initCesium() {
 		}
 	});
 
-	[viewer, miniViewer].forEach(v => {
+	pauseMiniViewer = new Cesium.Viewer("pauseMinimapCesium", {
+		terrain: null,
+		timeline: false,
+		animation: false,
+		baseLayerPicker: false,
+		geocoder: false,
+		homeButton: false,
+		infoBox: false,
+		sceneModePicker: false,
+		selectionIndicator: false,
+		navigationHelpButton: false,
+		fullscreenButton: false,
+		shouldAnimate: false,
+		skyBox: false,
+		skyAtmosphere: false,
+		contextOptions: {
+			webgl: {
+				preserveDrawingBuffer: true
+			}
+		}
+	});
+
+	[viewer, miniViewer, pauseMiniViewer].forEach(v => {
 		v.scene.requestRenderMode = false;
 		v.scene.maximumRenderTimeChange = 0;
 		v.scene.globe.maximumScreenSpaceError = 2;
@@ -68,15 +91,17 @@ export function initCesium() {
 		v._cesiumWidget._creditContainer.style.display = "none";
 	});
 
-	miniViewer.scene.globe.enableLighting = false;
-	miniViewer.scene.globe.showGroundAtmosphere = false;
-	miniViewer.scene.fog.enabled = false;
-	miniViewer.scene.highDynamicRange = false;
-	miniViewer.scene.postProcessStages.fxaa.enabled = false;
-	miniViewer.resolutionScale = 1.0;
-	miniViewer.scene.globe.maximumScreenSpaceError = 2;
-	miniViewer.scene.globe.baseColor = Cesium.Color.BLACK;
-	if (miniViewer.scene.skyAtmosphere) miniViewer.scene.skyAtmosphere.show = false;
+	[miniViewer, pauseMiniViewer].forEach(v => {
+		v.scene.globe.enableLighting = false;
+		v.scene.globe.showGroundAtmosphere = false;
+		v.scene.fog.enabled = false;
+		v.scene.highDynamicRange = false;
+		v.scene.postProcessStages.fxaa.enabled = false;
+		v.resolutionScale = 1.0;
+		v.scene.globe.maximumScreenSpaceError = 2;
+		v.scene.globe.baseColor = Cesium.Color.BLACK;
+		if (v.scene.skyAtmosphere) v.scene.skyAtmosphere.show = false;
+	});
 
 	viewer.scene.globe.enableLighting = true;
 	viewer.scene.highDynamicRange = false;
@@ -92,9 +117,9 @@ export function initCesium() {
 }
 
 export function setRenderOptimization(isMenu) {
-	if (!viewer || !miniViewer) return;
+	if (!viewer || !miniViewer || !pauseMiniViewer) return;
 
-	[viewer, miniViewer].forEach(v => {
+	[viewer, miniViewer, pauseMiniViewer].forEach(v => {
 		v.scene.requestRenderMode = !isMenu;
 		v.scene.maximumRenderTimeChange = !isMenu ? Infinity : 0;
 	});
@@ -144,10 +169,33 @@ export function setMinimapCamera(lon, lat, altitude, heading) {
 	miniViewer.scene.requestRender();
 }
 
+export function setPauseMinimapCamera(lon, lat, altitude, heading) {
+	if (!pauseMiniViewer) return;
+
+	if (pauseMiniViewer.canvas.width === 0 || pauseMiniViewer.canvas.height === 0) {
+		return;
+	}
+
+	pauseMiniViewer.camera.setView({
+		destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
+		orientation: {
+			heading: Cesium.Math.toRadians(heading),
+			pitch: Cesium.Math.toRadians(-90),
+			roll: 0
+		}
+	});
+
+	pauseMiniViewer.scene.requestRender();
+}
+
 export function getViewer() {
 	return viewer;
 }
 
 export function getMiniViewer() {
 	return miniViewer;
+}
+
+export function getPauseMiniViewer() {
+	return pauseMiniViewer;
 }

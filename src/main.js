@@ -137,7 +137,7 @@ async function initUserLocation() {
 			state.lat = data.latitude;
 			state.lon = data.longitude;
 		}
-	} catch (e) {}
+	} catch (e) { }
 }
 
 initUserLocation();
@@ -719,6 +719,11 @@ function animate() {
 		frameCount = 0;
 		lastFpsUpdate = now;
 		hud.updateFPS(fps);
+
+		const menuTimeElem = document.getElementById('menu-time');
+		if (menuTimeElem) {
+			menuTimeElem.textContent = new Date().toISOString().split('.')[0] + 'Z';
+		}
 	}
 
 	if (currentState === States.FLYING || currentState === States.PAUSED || currentState === States.TRANSITIONING) {
@@ -738,6 +743,8 @@ function animate() {
 
 		if (currentState === States.FLYING) {
 			update(dt);
+		} else if (currentState === States.PAUSED) {
+			hud.updatePauseMenu(state, currentRegionName, npcSystem ? npcSystem.npcs : []);
 		}
 
 		if (mixer) mixer.update(dt);
@@ -760,13 +767,11 @@ function animate() {
 	}
 }
 
+function closeAllModals() {
+	document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+}
+
 function setupModalListeners() {
-	const modals = document.querySelectorAll('.modal');
-
-	const closeAllModals = () => {
-		modals.forEach(m => m.classList.add('hidden'));
-	};
-
 	document.getElementById('helpBtn').onclick = () => {
 		closeAllModals();
 		document.getElementById('helpModal').classList.remove('hidden');
@@ -779,11 +784,13 @@ function setupModalListeners() {
 	};
 
 	document.getElementById('pauseOptionsBtn').onclick = () => {
+		closeAllModals();
 		updateSettingsUI();
 		document.getElementById('optionsModal').classList.remove('hidden');
 	};
 
 	document.getElementById('pauseHelpBtn').onclick = () => {
+		closeAllModals();
 		document.getElementById('helpModal').classList.remove('hidden');
 	};
 
@@ -833,7 +840,7 @@ function setupModalListeners() {
 }
 
 document.getElementById('startBtn').onclick = () => {
-	document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+	closeAllModals();
 	mainMenu.classList.add('hidden');
 	enterSpawnPicking(false);
 };
@@ -841,6 +848,7 @@ document.getElementById('startBtn').onclick = () => {
 setupModalListeners();
 
 document.getElementById('resumeBtn').onclick = () => {
+	closeAllModals();
 	pauseMenu.classList.add('hidden');
 	uiContainer.classList.remove('hidden');
 	const weaponsHud = document.getElementById('weapons-hud');
@@ -851,18 +859,21 @@ document.getElementById('resumeBtn').onclick = () => {
 };
 
 document.getElementById('restartBtn').onclick = () => {
+	closeAllModals();
 	pauseMenu.classList.add('hidden');
 	if (dialogueSystem) dialogueSystem.stop();
 	enterSpawnPicking(true);
 };
 
 document.getElementById('quitBtn').onclick = () => {
+	closeAllModals();
 	if (dialogueSystem) dialogueSystem.stop();
 	setRenderOptimization(true);
 	location.reload();
 };
 
 document.getElementById('respawnBtn').onclick = () => {
+	closeAllModals();
 	crashMenu.classList.add('hidden');
 	if (dialogueSystem) dialogueSystem.stop();
 	enterSpawnPicking(true);
@@ -1251,6 +1262,7 @@ window.addEventListener('keydown', (e) => {
 			const weaponsHud = document.getElementById('weapons-hud');
 			if (weaponsHud) weaponsHud.classList.add('hidden');
 			pauseMenu.classList.remove('hidden');
+			hud.resizeMinimap();
 			pauseGameplaySounds();
 			hud.update(state, []);
 		} else if (currentState === States.PAUSED) {
@@ -1277,6 +1289,7 @@ document.addEventListener('visibilitychange', () => {
 		if (dialogueSystem) dialogueSystem.pause();
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
+		hud.resizeMinimap();
 		pauseGameplaySounds();
 		hud.update(state, []);
 	}
@@ -1288,6 +1301,7 @@ window.addEventListener('blur', () => {
 		if (dialogueSystem) dialogueSystem.pause();
 		uiContainer.classList.add('hidden');
 		pauseMenu.classList.remove('hidden');
+		hud.resizeMinimap();
 		pauseGameplaySounds();
 		hud.update(state, []);
 	}
